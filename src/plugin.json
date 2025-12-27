@@ -1,0 +1,42 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "panel",
+  "name": "Dynamic Search",
+  "id": "matheusmenses-dynamicsearch-panel",
+  "info": {
+    "keywords": [
+      "panel",
+      "search",
+      "variable",
+      "prometheus",
+      "dynamic",
+      "filter"
+    ],
+    "description": "A dynamic search panel that queries Prometheus and updates dashboard variables on typing",
+    "author": {
+      "name": "Matheus Meneses",
+      "url": "https://github.com/matheus-meneses"
+    },
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [
+      {
+        "name": "GitHub",
+        "url": "https://github.com/matheus-meneses/grafana-dynamic-search"
+      },
+      {
+        "name": "License",
+        "url": "https://github.com/matheus-meneses/grafana-dynamic-search/blob/main/LICENSE"
+      }
+    ],
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=11.6.0",
+    "plugins": []
+  }
+}
