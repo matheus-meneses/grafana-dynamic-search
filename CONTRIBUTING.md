@@ -52,7 +52,7 @@ Thank you for your interest in contributing to the Grafana Dynamic Search Panel.
 ```
 src/
 ├── components/
-│   ├── SimplePanel.tsx           # Main panel component
+│   ├── DynamicSearchPanel.tsx     # Main panel component
 │   ├── DataSourcePickerEditor.tsx # Datasource selector for options
 │   └── RegexEditor.tsx           # Regex input with validation
 ├── module.ts                     # Plugin registration and options

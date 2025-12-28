@@ -7,4 +7,6 @@ export interface SimpleOptions {
     metric: string;
     variableName?: string;
     regex?: string;
+    minChars: number;
+    maxResults: number;
 }

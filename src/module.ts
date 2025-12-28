@@ -1,16 +1,17 @@
 import { PanelPlugin } from '@grafana/data';
 import { SimpleOptions } from './types';
-import { SimplePanel } from './components/SimplePanel';
+import { DynamicSearchPanel } from './components/DynamicSearchPanel';
+import { MIN_SEARCH_LENGTH } from './utils';
 
 import { DataSourcePickerEditor } from './components/DataSourcePickerEditor';
 import { RegexEditor } from './components/RegexEditor';
 
-export const plugin = new PanelPlugin<SimpleOptions>(SimplePanel).setPanelOptions((builder) => {
+export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPanelOptions((builder) => {
   return builder
     .addCustomEditor({
       id: 'datasourceUid',
       path: 'datasourceUid',
-      name: 'Datasource',
+      name: 'Datasource *',
       description: 'Select the Prometheus datasource to query',
       editor: DataSourcePickerEditor,
     })
@@ -29,9 +30,9 @@ export const plugin = new PanelPlugin<SimpleOptions>(SimplePanel).setPanelOption
     })
     .addTextInput({
       path: 'label',
-      name: 'Label',
-      description: 'Label name to extract values from (e.g., job, handler)',
-      defaultValue: 'job',
+      name: 'Label *',
+      description: 'Label name to extract values from (e.g., job, handler). Required for Label values query.',
+      defaultValue: '',
       showIf: (config) => config.queryType === 'label_values',
     })
     .addTextInput({
@@ -42,9 +43,29 @@ export const plugin = new PanelPlugin<SimpleOptions>(SimplePanel).setPanelOption
     })
     .addTextInput({
       path: 'variableName',
-      name: 'Target Variable',
+      name: 'Target Variable *',
       description: 'Dashboard variable to update when a value is selected (without $)',
       defaultValue: '',
+    })
+    .addNumberInput({
+      path: 'minChars',
+      name: 'Min Characters',
+      description: 'Minimum characters to trigger search',
+      defaultValue: MIN_SEARCH_LENGTH,
+      settings: {
+        min: 0,
+        integer: true,
+      },
+    })
+    .addNumberInput({
+      path: 'maxResults',
+      name: 'Max Results',
+      description: 'Maximum number of results to display (0 for unlimited)',
+      defaultValue: 0,
+      settings: {
+        min: 0,
+        integer: true,
+      },
     })
     .addCustomEditor({
       id: 'regex',
