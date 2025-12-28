@@ -24,11 +24,11 @@ jobs:
     env:
       GRAFANA_ACCESS_POLICY_TOKEN: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Setup Node.js environment
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v6.1.0
         with:
           node-version: '22'
           cache: 'npm'
@@ -44,7 +44,7 @@ jobs:
         run: npm run test:coverage
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
@@ -141,7 +141,7 @@ jobs:
       matrix: ${{ steps.resolve-versions.outputs.matrix }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -150,7 +150,7 @@ jobs:
         uses: grafana/plugin-actions/e2e-version@e2e-version/v1.1.2
 
   playwright-tests:
-    needs: [resolve-versions, build]
+    needs: [ resolve-versions, build ]
     timeout-minutes: 15
     permissions:
       contents: read
@@ -163,12 +163,12 @@ jobs:
     name: e2e test ${{ matrix.GRAFANA_IMAGE.name }}@${{ matrix.GRAFANA_IMAGE.VERSION }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
       - name: Download plugin
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           path: dist
           name: ${{ needs.build.outputs.plugin-id }}-${{ needs.build.outputs.plugin-version }}
@@ -179,7 +179,7 @@ jobs:
           chmod +x ./dist/gpx_*
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v6.1.0
         with:
           node-version: '22'
           cache: 'npm'
@@ -228,20 +228,18 @@ jobs:
       #     name: ${{ matrix.GRAFANA_IMAGE.NAME }}-v${{ matrix.GRAFANA_IMAGE.VERSION }}-${{github.run_id}}-server-log
       #     path: grafana-server.log
       #     retention-days: 5
-
   publish-report:
     if: ${{ always() && !cancelled() }}
     permissions:
       contents: write
       id-token: write
       pull-requests: write
-    needs: [playwright-tests]
+    needs: [ playwright-tests ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
-          # required for playwright-gh-pages
-          persist-credentials: true
+          persist-credentials: false
       - name: Publish report
         uses: grafana/plugin-actions/playwright-gh-pages/deploy-report-pages@deploy-report-pages/v1.1.0
         with:
