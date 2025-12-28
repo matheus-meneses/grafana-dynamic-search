@@ -35,10 +35,7 @@
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },
-    "rootUrls": [
-      "http://localhost:3000"
-    ],
-    "dependencies": {
+  "dependencies": {
     "grafanaDependency": ">=11.6.0",
     "plugins": []
   }
