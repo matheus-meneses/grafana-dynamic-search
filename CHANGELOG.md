@@ -19,3 +19,15 @@ Initial release of Grafana Dynamic Search Panel.
 - Configurable maximum results limit
 - Prometheus-compatible datasource picker
 - Grafana 11.6.0+ compatibility
+
+### Dependencies
+
+- Updated actions/checkout to v6
+- Updated actions/setup-node to v6.1.0
+- Updated codecov/codecov-action to v5
+- Updated actions/download-artifact to v7
+- Updated grafana/plugin-actions/bundle-size to v1.1.0
+- Updated eslint and related packages
+- Updated fork-ts-checker-webpack-plugin to v9.1.0
+- Updated css-loader to v7.1.2
+- Updated style-loader to v4.0.0
