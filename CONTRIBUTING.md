@@ -45,33 +45,35 @@ Thank you for your interest in contributing to the Grafana Dynamic Search Panel!
 
 ## Making Changes
 
-1. Create a feature branch from `main`:
+1. **Fork** the repository on GitHub (if you haven't already).
+
+2. Create a feature branch from `main`:
    ```bash
    git checkout -b feature/your-feature-name
    ```
 
-2. Make your changes.
+3. Make your changes.
 
-3. **Verify** your changes:
+4. **Verify** your changes:
    ```bash
    npm run lint
    npm run test:coverage
    ```
 
-4. **Commit** your changes following [Conventional Commits](https://www.conventionalcommits.org/):
+5. **Commit** your changes following [Conventional Commits](https://www.conventionalcommits.org/):
    ```bash
    git commit -m "feat: add new feature"
    git commit -m "fix: resolve issue with search logic"
    ```
 
-5. **Push** to your fork and create a **Pull Request** to the `main` branch of the original repository.
+6. **Push** to your fork and create a **Pull Request** to the `main` branch of the original repository.
 
 ## Reporting Issues
 
 If you find a bug or have a feature request, please open an issue using one of our templates:
 
-- [Bug Report](.github/ISSUE_TEMPLATE/bug_report.md)
-- [Feature Request](.github/ISSUE_TEMPLATE/feature_request.md)
+- [Bug Report](https://github.com/matheus-meneses/grafana-dynamic-search/issues/new?template=bug_report.md)
+- [Feature Request](https://github.com/matheus-meneses/grafana-dynamic-search/issues/new?template=feature_request.md)
 
 ## Project Structure
 
