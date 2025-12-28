@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to the Grafana Dynamic Search Panel!
 
-## 🛠️ Development Setup
+## Development Setup
 
 ### Prerequisites
 
@@ -43,7 +43,7 @@ Thank you for your interest in contributing to the Grafana Dynamic Search Panel!
 
 6. Access Grafana at [http://localhost:3000](http://localhost:3000) (default credentials: `admin`/`admin`).
 
-## 📦 Making Changes
+## Making Changes
 
 1. Create a feature branch from `main`:
    ```bash
@@ -66,14 +66,14 @@ Thank you for your interest in contributing to the Grafana Dynamic Search Panel!
 
 5. **Push** to your fork and create a **Pull Request** to the `main` branch of the original repository.
 
-## 🐛 Reporting Issues
+## Reporting Issues
 
 If you find a bug or have a feature request, please open an issue using one of our templates:
 
 - [Bug Report](.github/ISSUE_TEMPLATE/bug_report.md)
 - [Feature Request](.github/ISSUE_TEMPLATE/feature_request.md)
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 src/
@@ -86,7 +86,7 @@ src/
 └── plugin.json                   # Plugin metadata
 ```
 
-## ✅ Code Style
+## Code Style
 
 - Use **TypeScript** for everything.
 - Prefer **Functional Components** with React Hooks.
