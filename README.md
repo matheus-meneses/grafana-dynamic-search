@@ -1,7 +1,7 @@
 # Grafana Dynamic Search Panel
 
 [![CI](https://github.com/matheus-meneses/grafana-dynamic-search/actions/workflows/ci.yml/badge.svg)](https://github.com/matheus-meneses/grafana-dynamic-search/actions/workflows/ci.yml)
-[![Coverage](https://codecov.io/gh/matheus-meneses/grafana-dynamic-search/branch/main/graph/badge.svg)](https://codecov.io/gh/matheus-meneses/grafana-dynamic-search)
+[![Coverage](https://codecov.io/gh/matheus-meneses/grafana-dynamic-search/graph/badge.svg)](https://codecov.io/gh/matheus-meneses/grafana-dynamic-search)
 [![License](https://img.shields.io/github/license/matheus-meneses/grafana-dynamic-search)](LICENSE)
 [![Grafana](https://img.shields.io/badge/Grafana-11.6.0%2B-orange)](https://grafana.com)
 
