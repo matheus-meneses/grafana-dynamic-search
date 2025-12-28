@@ -1,53 +1,79 @@
 # Contributing
 
-Thank you for your interest in contributing to the Grafana Dynamic Search Panel.
+Thank you for your interest in contributing to the Grafana Dynamic Search Panel!
 
-## Development Setup
+## 🛠️ Development Setup
 
 ### Prerequisites
 
-- Node.js 18 or higher
+- Node.js 22 or higher
 - npm 9 or higher
 - Docker (for running local Grafana)
 
 ### Getting Started
 
-1. Clone the repository:
+1. **Fork** the repository on GitHub.
+
+2. **Clone** your fork:
    ```bash
-   git clone git@github.com:matheus-meneses/grafana-dynamic-search.git
+   git clone git@github.com:YOUR_USERNAME/grafana-dynamic-search.git
    cd grafana-dynamic-search
    ```
 
-2. Install dependencies:
+3. Install dependencies:
    ```bash
    npm install
    ```
 
-3. Start development mode (watches for changes):
+4. Start development mode (watches for changes):
    ```bash
    npm run dev
    ```
 
-4. Start Grafana with the plugin:
+5. Start Grafana and Prometheus with the plugin:
    ```bash
    npm run server
    ```
+   > **Note**: This command runs `docker compose up --build`. It automatically spins up:
+   > - **Grafana** (with the plugin installed) at [http://localhost:3000](http://localhost:3000)
+   > - **Prometheus** (configured as a datasource) at [http://localhost:9090](http://localhost:9090)
+   >
+   > Prometheus is pre-configured to scrape itself, generating sample metrics like `prometheus_http_requests_total` so you can test the search panel immediately.
+   > A sample dashboard is also provisioned to get you started quickly.
 
-5. Access Grafana at http://localhost:3000 (default credentials: admin/admin)
+6. Access Grafana at [http://localhost:3000](http://localhost:3000) (default credentials: `admin`/`admin`).
 
-## Available Commands
+## 📦 Making Changes
 
-| Command            | Description               |
-|--------------------|---------------------------|
-| `npm run dev`      | Build in watch mode       |
-| `npm run build`    | Production build          |
-| `npm run server`   | Start Grafana with Docker |
-| `npm run test`     | Run tests                 |
-| `npm run test:ci`  | Run tests (CI mode)       |
-| `npm run lint`     | Run linter                |
-| `npm run lint:fix` | Fix lint errors           |
+1. Create a feature branch from `main`:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-## Project Structure
+2. Make your changes.
+
+3. **Verify** your changes:
+   ```bash
+   npm run lint
+   npm run test:coverage
+   ```
+
+4. **Commit** your changes following [Conventional Commits](https://www.conventionalcommits.org/):
+   ```bash
+   git commit -m "feat: add new feature"
+   git commit -m "fix: resolve issue with search logic"
+   ```
+
+5. **Push** to your fork and create a **Pull Request** to the `main` branch of the original repository.
+
+## 🐛 Reporting Issues
+
+If you find a bug or have a feature request, please open an issue using one of our templates:
+
+- [Bug Report](.github/ISSUE_TEMPLATE/bug_report.md)
+- [Feature Request](.github/ISSUE_TEMPLATE/feature_request.md)
+
+## 🏗️ Project Structure
 
 ```
 src/
@@ -60,45 +86,10 @@ src/
 └── plugin.json                   # Plugin metadata
 ```
 
-## Making Changes
+## ✅ Code Style
 
-1. Create a feature branch from `develop`:
-   ```bash
-   git checkout develop
-   git checkout -b feature/your-feature-name
-   ```
-
-2. Make your changes
-
-3. Run tests and linting:
-   ```bash
-   npm run lint
-   npm run test:ci
-   ```
-
-4. Commit your changes following conventional commits:
-   ```bash
-   git commit -m "feat: add new feature"
-   git commit -m "fix: resolve issue with X"
-   ```
-
-5. Push and create a pull request to `develop`
-
-## Commit Message Format
-
-Use conventional commits:
-
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation changes
-- `style:` - Code style changes (formatting, no logic change)
-- `refactor:` - Code refactoring
-- `test:` - Adding or updating tests
-- `chore:` - Maintenance tasks
-
-## Code Style
-
-- Follow existing code patterns
-- Use TypeScript types
-- Keep components focused and small
-- Use Grafana UI components from `@grafana/ui`
+- Use **TypeScript** for everything.
+- Prefer **Functional Components** with React Hooks.
+- Use **Grafana UI** components (`@grafana/ui`) whenever possible.
+- Ensure all tests pass (`npm run test:coverage`).
+- Ensure no lint errors (`npm run lint`).
