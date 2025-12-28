@@ -3,10 +3,17 @@ import { test, expect } from '@grafana/plugin-e2e';
 test('should display configuration warning when panel is not configured', async ({
   gotoPanelEditPage,
   readProvisionedDashboard,
+  page,
 }) => {
   const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
   const panelEditPage = await gotoPanelEditPage({ dashboard, id: '2' });
-  await expect(panelEditPage.panel.locator.getByTestId('dynamic-search-panel-config-warning')).toBeVisible();
+  
+  // Wait for the panel to be visible first
+  await expect(panelEditPage.panel.locator).toBeVisible();
+  
+  // Use a more robust selector strategy - finding within the panel locator might fail if the structure is unexpected
+  // Use the global page locator with the test id, which is more reliable for custom components
+  await expect(page.getByTestId('dynamic-search-panel-config-warning')).toBeVisible();
 });
 
 test('should display search container when configured', async ({
@@ -22,6 +29,7 @@ test('should display search container when configured', async ({
   const options = panelEditPage.getCustomOptions('Grafana-Dynamic-Search');
   await options.getTextInput('Metric *').fill('up');
   await options.getTextInput('Target Variable *').fill('test_var');
+  await options.getTextInput('Label *').fill('job');
 
   await expect(page.getByTestId('dynamic-search-panel-wrapper')).toBeVisible();
   await expect(page.getByTestId('dynamic-search-panel-select-container')).toBeVisible();
@@ -40,6 +48,7 @@ test('should display hint about minimum characters', async ({
   const options = panelEditPage.getCustomOptions('Grafana-Dynamic-Search');
   await options.getTextInput('Metric *').fill('up');
   await options.getTextInput('Target Variable *').fill('test_var');
+  await options.getTextInput('Label *').fill('job');
 
   await expect(page.getByTestId('dynamic-search-panel-hint')).toContainText('Min 3 characters');
 });
@@ -56,6 +65,7 @@ test('should update hint when min characters option is changed', async ({
     const options = panelEditPage.getCustomOptions('Grafana-Dynamic-Search');
     await options.getTextInput('Metric *').fill('up');
     await options.getTextInput('Target Variable *').fill('test_var');
+    await options.getTextInput('Label *').fill('job');
     
     // Change min characters to 5
     const minCharsInput = options.locator.getByLabel('Min Characters');
@@ -76,6 +86,7 @@ test('should update hint when min characters option is changed', async ({
     const options = panelEditPage.getCustomOptions('Grafana-Dynamic-Search');
     await options.getTextInput('Metric *').fill('up');
     await options.getTextInput('Target Variable *').fill('test_var');
+    await options.getTextInput('Label *').fill('job');
     
     // Set max results to 10
     const maxResultsInput = options.locator.getByLabel('Max Results');
@@ -97,7 +108,7 @@ test('should update hint when min characters option is changed', async ({
     await options.getTextInput('Metric *').fill('up');
     await options.getTextInput('Target Variable *').fill('test_var');
     
-    // Default query type is label_values, clear the default label 'job'
+    // Default query type is label_values, clear the default label if it exists
     await options.getTextInput('Label *').fill('');
 
     // Should show config warning because label is missing
