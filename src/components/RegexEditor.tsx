@@ -87,9 +87,9 @@ export const RegexEditor: React.FC<StandardEditorProps<string>> = ({ value, onCh
                         <span>Valid regex pattern</span>
                     </div>
                 ) : (
-                    <div className={`${styles.feedback} ${styles.invalid}`}>
+                    <div className={`${styles.feedback} ${styles.invalid}`} data-testid="dynamic-search-panel-regex-error">
                         <Icon name="exclamation-triangle" size="sm" />
-                        <span>{validation.error}</span>
+                        <span>Invalid regex: {validation.error}</span>
                     </div>
                 )
             ) : (

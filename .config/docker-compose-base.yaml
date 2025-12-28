@@ -1,7 +1,7 @@
 services:
   grafana:
     user: root
-    container_name: 'matheusmeneses-grafanadynamicsearch-panel'
+    container_name: 'matheusmenses-dynamicsearch-panel'
 
     build:
       context: .
@@ -13,13 +13,13 @@ services:
     ports:
       - 3000:3000/tcp
     volumes:
-      - ../dist:/var/lib/grafana/plugins/matheusmeneses-grafanadynamicsearch-panel
+      - ../dist:/var/lib/grafana/plugins/matheusmenses-dynamicsearch-panel
       - ../provisioning:/etc/grafana/provisioning
-      - ..:/root/matheusmeneses-grafanadynamicsearch-panel
+      - ..:/root/matheusmenses-dynamicsearch-panel
 
     environment:
       NODE_ENV: development
-      GF_LOG_FILTERS: plugin.matheusmeneses-grafanadynamicsearch-panel:debug
+      GF_LOG_FILTERS: plugin.matheusmenses-dynamicsearch-panel:debug
       GF_LOG_LEVEL: debug
       GF_DATAPROXY_LOGGING: 1
-      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: matheusmeneses-grafanadynamicsearch-panel
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: matheusmenses-dynamicsearch-panel
