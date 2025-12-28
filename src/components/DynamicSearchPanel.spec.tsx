@@ -88,6 +88,9 @@ const defaultProps: PanelProps<SimpleOptions> = {
   transparent: false,
   eventBus: {} as any,
   replaceVariables: (s: string) => s,
+  fieldConfig: {} as any,
+  onFieldConfigChange: jest.fn(),
+  onChangeTimeRange: jest.fn(),
 };
 
 describe('DynamicSearchPanel', () => {
