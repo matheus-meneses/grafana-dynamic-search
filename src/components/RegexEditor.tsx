@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { StandardEditorProps } from '@grafana/data';
+import React, { useState, useMemo } from 'react';
+import { StandardEditorProps, GrafanaTheme2 } from '@grafana/data';
 import { Input, useStyles2, Icon } from '@grafana/ui';
 import { css } from '@emotion/css';
-import { GrafanaTheme2 } from '@grafana/data';
 
 const getStyles = (theme: GrafanaTheme2) => ({
     container: css`
@@ -35,23 +34,17 @@ const getStyles = (theme: GrafanaTheme2) => ({
 export const RegexEditor: React.FC<StandardEditorProps<string>> = ({ value, onChange }) => {
     const styles = useStyles2(getStyles);
     const [inputValue, setInputValue] = useState(value || '');
-    const [validation, setValidation] = useState<{ valid: boolean; error: string | null }>({
-        valid: true,
-        error: null,
-    });
 
-    // Validate regex whenever input changes
-    useEffect(() => {
+    // Validate regex directly during render (derived state)
+    const validation = useMemo(() => {
         if (!inputValue) {
-            setValidation({ valid: true, error: null });
-            return;
+            return { valid: true, error: null };
         }
-
         try {
             new RegExp(inputValue);
-            setValidation({ valid: true, error: null });
+            return { valid: true, error: null };
         } catch (e) {
-            setValidation({ valid: false, error: (e as Error).message });
+            return { valid: false, error: (e as Error).message };
         }
     }, [inputValue]);
 
