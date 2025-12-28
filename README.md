@@ -5,9 +5,12 @@
 [![License](https://img.shields.io/github/license/matheus-meneses/grafana-dynamic-search)](LICENSE)
 [![Grafana](https://img.shields.io/badge/Grafana-11.6.0%2B-orange)](https://grafana.com)
 
-**Grafana Dynamic Search** is a powerful panel plugin that brings real-time, dynamic search capabilities to your dashboards. It allows users to query Prometheus directly from a search box, offering autocomplete suggestions for labels, metrics, and values, and instantly updating dashboard variables based on the selection.
+**Grafana Dynamic Search** is a powerful panel plugin that brings real-time, dynamic search capabilities to your
+dashboards. It allows users to query Prometheus directly from a search box, offering autocomplete suggestions for
+labels, metrics, and values, and instantly updating dashboard variables based on the selection.
 
-This plugin bridges the gap between static dropdowns and raw PromQL, giving your users a fluid, interactive way to filter and explore data.
+This plugin bridges the gap between static dropdowns and raw PromQL, giving your users a fluid, interactive way to
+filter and explore data.
 
 ## Features
 
@@ -32,18 +35,22 @@ Suggested GIFs:
 ## Installation
 
 ### Grafana CLI
+
 ```bash
 grafana-cli plugins install matheusmenses-dynamicsearch-panel
 ```
 
 ### Manual
-1. Download the latest release from the [GitHub Releases](https://github.com/matheus-meneses/grafana-dynamic-search/releases).
+
+1. Download the latest release from
+   the [GitHub Releases](https://github.com/matheus-meneses/grafana-dynamic-search/releases).
 2. Extract the zip file into your Grafana plugins directory (usually `/var/lib/grafana/plugins`).
 3. Restart Grafana.
 
 ## Configuration
 
 ### Step 1: Create a Dashboard Variable
+
 The panel works by updating a standard Grafana variable.
 
 1. Go to **Dashboard Settings** > **Variables**.
@@ -53,6 +60,7 @@ The panel works by updating a standard Grafana variable.
 5. Save the variable.
 
 ### Step 2: Add the Panel
+
 1. Add a new visualization to your dashboard.
 2. Select **Dynamic Search** from the visualization list.
 
@@ -72,6 +80,7 @@ The panel works by updating a standard Grafana variable.
 _* Required only for Label Values query type._
 
 ### Step 4: Link Other Panels
+
 In your other panels (Time Series, Bar Gauge, etc.), use the variable in your PromQL queries:
 
 ```promql
@@ -90,7 +99,8 @@ Now, when you select a value in the search box, `$my_search_filter` updates, and
 
 ## Regex Transformation
 
-You can use standard Regex (Regular Expressions) to extract specific parts of the returned values. The plugin uses the **first capture group** `(.*)` as the display and value.
+You can use standard Regex (Regular Expressions) to extract specific parts of the returned values. The plugin uses the *
+*first capture group** `(.*)` as the display and value.
 
 **Examples:**
 
@@ -103,6 +113,13 @@ You can use standard Regex (Regular Expressions) to extract specific parts of th
 ## Development
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on how to set up the development environment.
+
+## Feedback
+
+Found a bug or have a feature request? Please open an issue:
+
+- [Bug Report](https://github.com/matheus-meneses/grafana-dynamic-search/issues/new?template=bug_report.md)
+- [Feature Request](https://github.com/matheus-meneses/grafana-dynamic-search/issues/new?template=feature_request.md)
 
 ## License
 
