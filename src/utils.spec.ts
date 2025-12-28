@@ -1,5 +1,5 @@
 import { buildQuery, applyRegexFilter } from './utils';
-import { SimpleOptions } from './types';
+import { SimpleOptions, QueryType } from './types';
 import { MetricFindValue } from '@grafana/data';
 
 const defaultOptions: SimpleOptions = {
@@ -76,6 +76,14 @@ describe('utils', () => {
       } as SimpleOptions;
       expect(buildQuery(options, '')).toBe('metrics(.*)');
     });
+
+    it('should return empty string for invalid query type', () => {
+        const options: SimpleOptions = {
+            ...defaultOptions,
+            queryType: 'invalid' as QueryType,
+        };
+        expect(buildQuery(options, '')).toBe('');
+    });
   });
 
   describe('applyRegexFilter', () => {
@@ -122,6 +130,29 @@ describe('utils', () => {
          { label: 'node-02', value: 'node-02' },
          { label: 'other', value: 'other' },
        ]);
+    });
+
+    it('should handle error during regex execution gracefully', () => {
+        // Suppress console.error for this test
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const regex = /test/;
+        // Force an error by passing an object without text property, casting to trigger the try/catch
+        const invalidValues = [{ text: undefined }] as unknown as MetricFindValue[];
+        
+        const result = applyRegexFilter(invalidValues, regex);
+        
+        expect(result).toEqual([{ label: undefined, value: undefined }]);
+        expect(consoleSpy).toHaveBeenCalledWith('Invalid regex execution:', expect.any(Error));
+        
+        consoleSpy.mockRestore();
+    });
+  });
+
+  describe('environment setup', () => {
+    it('should have matchMedia mock', () => {
+        const mql = window.matchMedia('(min-width: 400px)');
+        expect(mql.matches).toBe(false);
+        expect(mql.media).toBe('(min-width: 400px)');
     });
   });
 });

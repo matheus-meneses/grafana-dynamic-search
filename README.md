@@ -1,77 +1,109 @@
 # Grafana Dynamic Search Panel
 
-A Grafana panel that provides a search box for querying Prometheus and updating dashboard variables in real-time.
+[![CI](https://github.com/matheus-meneses/grafana-dynamic-search/actions/workflows/ci.yml/badge.svg)](https://github.com/matheus-meneses/grafana-dynamic-search/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/matheus-meneses/grafana-dynamic-search/branch/main/graph/badge.svg)](https://codecov.io/gh/matheus-meneses/grafana-dynamic-search)
+[![License](https://img.shields.io/github/license/matheus-meneses/grafana-dynamic-search)](LICENSE)
+[![Grafana](https://img.shields.io/badge/Grafana-11.6.0%2B-orange)](https://grafana.com)
 
-## What it does
+**Grafana Dynamic Search** is a powerful panel plugin that brings real-time, dynamic search capabilities to your dashboards. It allows users to query Prometheus directly from a search box, offering autocomplete suggestions for labels, metrics, and values, and instantly updating dashboard variables based on the selection.
 
-This panel allows you to:
+This plugin bridges the gap between static dropdowns and raw PromQL, giving your users a fluid, interactive way to filter and explore data.
 
-1. Type in a search box
-2. Get autocomplete suggestions from Prometheus (label values, label names, or metrics)
-3. Select a value to update a dashboard variable
-4. Other panels automatically refresh based on the selected value
+## Features
+
+- **Real-time Autocomplete**: Get suggestions from Prometheus as you type.
+- **Dynamic Variable Updates**: Instantly update dashboard variables without page reloads.
+- **Multiple Query Modes**: Support for querying Label Values, Label Names, and Metrics.
+- **Regex Transformation**: Powerful regex support to extract and format values on the fly.
+- **Customizable**: Control search behavior with minimum characters and result limits.
+- **Performance Focused**: Efficient querying to keep your dashboard responsive.
+
+## See it in action
+
+<!--
+TODO: Add GIFs demonstrating the plugin here.
+Suggested GIFs:
+1. Basic search and variable update.
+2. Using Regex to transform results.
+-->
+
+> **Example**: Searching for a `pod` name and automatically filtering all other panels on the dashboard.
 
 ## Installation
 
-Copy the plugin folder to your Grafana plugins directory and restart Grafana.
-
-## Usage
-
-### Step 1: Create a dashboard variable
-
-1. Open Dashboard Settings > Variables > Add variable
-2. Set Type to **Text box**
-3. Set Name to something like `myfilter`
-4. Save the dashboard
-
-### Step 2: Add the Dynamic Search panel
-
-1. Add a new visualization and select **Dynamic Search**
-2. Configure the panel options:
-
-| Option | What to enter |
-|--------|---------------|
-| Datasource | Your Prometheus datasource |
-| Query type | `Label values` (most common) |
-| Label | The label to search, e.g. `handler` or `job` |
-| Metric | The metric to query, e.g. `prometheus_http_requests_total` |
-| Target Variable | The variable name from Step 1, e.g. `myfilter` |
-| Regex | Optional: pattern to transform results |
-
-### Step 3: Use the variable in other panels
-
-In your other panels, reference the variable:
-
-```promql
-prometheus_http_requests_total{handler=~"$myfilter"}
+### Grafana CLI
+```bash
+grafana-cli plugins install matheusmenses-dynamicsearch-panel
 ```
 
-When you select a value in the Dynamic Search panel, all panels using `$myfilter` will update.
+### Manual
+1. Download the latest release from the [GitHub Releases](https://github.com/matheus-meneses/grafana-dynamic-search/releases).
+2. Extract the zip file into your Grafana plugins directory (usually `/var/lib/grafana/plugins`).
+3. Restart Grafana.
+
+## Configuration
+
+### Step 1: Create a Dashboard Variable
+The panel works by updating a standard Grafana variable.
+
+1. Go to **Dashboard Settings** > **Variables**.
+2. Click **Add variable**.
+3. Select **Text box** as the type.
+4. Name it (e.g., `my_search_filter`).
+5. Save the variable.
+
+### Step 2: Add the Panel
+1. Add a new visualization to your dashboard.
+2. Select **Dynamic Search** from the visualization list.
+
+### Step 3: Configure Options
+
+| Option              | Description                                                                  | Example                       | Default         | Required |
+|---------------------|------------------------------------------------------------------------------|-------------------------------|-----------------|----------|
+| **Datasource**      | The Prometheus datasource to query.                                          | `Prometheus`                  | -               | Yes      |
+| **Query Type**      | What to search for. See [Query Types](#query-types) below.                   | `Label values`                | `Label values`  | Yes      |
+| **Label**           | The specific label to query (required for Label Values).                     | `job` or `instance`           | -               | Yes*     |
+| **Metric**          | The metric context for the label (optional but recommended for performance). | `up` or `http_requests_total` | -               | Yes      |
+| **Target Variable** | The variable name from Step 1.                                               | `my_search_filter`            | -               | Yes      |
+| **Regex**           | Optional regex pattern to clean up results.                                  | `^/api/(.*)`                  | -               | No       |
+| **Min Characters**  | Minimum characters typed before triggering a search.                         | `3`                           | `3`             | No       |
+| **Max Results**     | Maximum number of suggestions to display.                                    | `100`                         | `0` (Unlimited) | No       |
+
+_* Required only for Label Values query type._
+
+### Step 4: Link Other Panels
+In your other panels (Time Series, Bar Gauge, etc.), use the variable in your PromQL queries:
+
+```promql
+http_requests_total{job=~"$my_search_filter"}
+```
+
+Now, when you select a value in the search box, `$my_search_filter` updates, and your charts refresh automatically!
 
 ## Query Types
 
-| Type | Use case |
-|------|----------|
-| **Label values** | Get all values for a specific label (e.g., all `handler` values) |
-| **Label names** | Get all label names available on a metric |
-| **Metrics** | Get metric names matching a pattern |
+| Type             | Description                                     | Use Case                                                   |
+|------------------|-------------------------------------------------|------------------------------------------------------------|
+| **Label Values** | Fetches values for a specific label.            | Searching for a specific `host`, `pod_name`, or `user_id`. |
+| **Label Names**  | Fetches all available label names for a metric. | Exploring what dimensions are available on a metric.       |
+| **Metrics**      | Fetches metric names matching the input.        | Discovering available metrics in the datasource.           |
 
 ## Regex Transformation
 
-Use regex to extract parts of values. The first capture group `(.*)` becomes the result.
+You can use standard Regex (Regular Expressions) to extract specific parts of the returned values. The plugin uses the **first capture group** `(.*)` as the display and value.
 
-Examples:
+**Examples:**
 
-| Regex | Input | Output |
-|-------|-------|--------|
-| `^/(.*)` | `/metrics` | `metrics` |
-| `/api/(.*)` | `/api/v1/query` | `v1/query` |
+| Regex Pattern   | Raw Input     | Result    |
+|-----------------|---------------|-----------|
+| `^/(.*)`        | `/metrics`    | `metrics` |
+| `instance-(.*)` | `instance-01` | `01`      |
+| `.*-(.*)-.*`    | `prod-api-v1` | `api`     |
 
-## Requirements
+## Development
 
-- Grafana 11.6.0 or higher
-- Prometheus datasource
+See [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on how to set up the development environment.
 
-## Author
+## License
 
-Matheus Meneses
+[Apache-2.0](LICENSE) © Matheus Meneses

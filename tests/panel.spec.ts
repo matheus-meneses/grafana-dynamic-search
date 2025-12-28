@@ -232,53 +232,57 @@ test.describe('Dynamic Search Panel', () => {
     await expect(options.getTextInput('Label *')).toBeVisible();
   });
 
-  // Test case 8: Verify variable update (with network mocking)
-  test('should update dashboard variable when a value is selected', async ({
+  // Test case 8: Search with real data (Provisioned Dashboard)
+  test('should search and update variable with real data', async ({
     dashboardPage,
     readProvisionedDashboard,
     readProvisionedDataSource,
     page,
   }) => {
-    // Mock the datasource response to ensure we have data to select
-    // Match common Prometheus API patterns
-    await page.route(/.*\/api\/v1\/(series|label\/.*\/values).*/, async route => {
-        const json = {
-            status: 'success',
-            data: ['value1', 'value2']
-        };
-        await route.fulfill({ json });
-    });
-
     const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
     await dashboardPage.goto({ uid: dashboard.uid });
+    
+    // Manually configure the panel to be robust against provisioning latency
     const panelEditPage = await dashboardPage.addPanel();
     await panelEditPage.setVisualization('Dynamic Search');
 
     const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
     const options = panelEditPage.getCustomOptions('Dynamic Search');
+    
     const dsSelect = options.element.getByRole('combobox', { name: 'Select a data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
-    await options.getTextInput('Metric *').fill('up');
-    await options.getTextInput('Target Variable *').fill('test_var');
-    await options.getTextInput('Label *').fill('job');
+    await options.getTextInput('Metric *').fill('prometheus_http_requests_total');
+    await options.getTextInput('Target Variable *').fill('api');
+    await options.getTextInput('Label *').fill('handler');
     await options.getTextInput('Label *').blur();
+    
+    // Return to dashboard to test the panel in view mode
+    await panelEditPage.apply();
 
-    // Now interact with the search
+    // The dashboard is already configured with prometheus, handler, etc.
+    // We just need to find the panel and interact with it.
+    
+    // In viewing mode, we can look for the panel wrapper directly
     const searchWrapper = page.getByTestId('dynamic-search-panel-wrapper');
-    // The Combobox input
+    await expect(searchWrapper).toBeVisible();
+
     const searchInput = searchWrapper.getByRole('combobox');
-    
     await searchInput.click();
-    // Type enough characters to trigger search
-    await searchInput.fill('val'); 
     
-    // Wait for options to load and select one
-    await expect(page.getByRole('option', { name: 'value1' })).toBeVisible();
-    await page.getByRole('option', { name: 'value1' }).click();
+    // Type "api" to search for handlers like /api/v1/query
+    await searchInput.fill('api');
     
-    // Verify URL contains the variable
-    await expect(page).toHaveURL(/var-test_var=value1/);
+    // Wait for results to load from Prometheus
+    // Prometheus usually has /api/v1/query or similar
+    const option = page.getByRole('option').first();
+    await expect(option).toBeVisible();
+    
+    // Click the first option
+    await option.click();
+
+    // Verify the URL is updated with the variable "api"
+    await expect(page).toHaveURL(/var-api=/);
   });
 });
