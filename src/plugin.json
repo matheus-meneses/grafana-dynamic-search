@@ -31,7 +31,16 @@
         "url": "https://github.com/matheus-meneses/grafana-dynamic-search/blob/main/LICENSE"
       }
     ],
-    "screenshots": [],
+    "screenshots": [
+      {
+        "name": "Panel View",
+        "path": "img/dynamic-search-panel.png"
+      },
+      {
+        "name": "Edit Mode",
+        "path": "img/dynamic-search-edit.png"
+      }
+    ],
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },
