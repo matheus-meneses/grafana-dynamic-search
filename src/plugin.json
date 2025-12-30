@@ -10,9 +10,15 @@
       "variable",
       "prometheus",
       "dynamic",
-      "filter"
+      "filter",
+      "autocomplete",
+      "typeahead",
+      "combobox",
+      "dropdown",
+      "label",
+      "metrics"
     ],
-    "description": "A dynamic search panel that queries Prometheus and updates dashboard variables on typing",
+    "description": "Search through thousands of Prometheus values instantly. Type-ahead autocomplete that updates dashboard variables in real-time.",
     "author": {
       "name": "Matheus Meneses",
       "url": "https://github.com/matheus-meneses"
@@ -27,11 +33,23 @@
         "url": "https://github.com/matheus-meneses/grafana-dynamic-search"
       },
       {
+        "name": "Documentation",
+        "url": "https://github.com/matheus-meneses/grafana-dynamic-search#configuration"
+      },
+      {
+        "name": "Changelog",
+        "url": "https://github.com/matheus-meneses/grafana-dynamic-search/blob/main/CHANGELOG.md"
+      },
+      {
         "name": "License",
         "url": "https://github.com/matheus-meneses/grafana-dynamic-search/blob/main/LICENSE"
       }
     ],
     "screenshots": [
+      {
+        "name": "Demo",
+        "path": "img/dynamic-search-demo.gif"
+      },
       {
         "name": "Panel View",
         "path": "img/dynamic-search-panel.png"

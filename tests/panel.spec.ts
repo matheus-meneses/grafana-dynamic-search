@@ -20,7 +20,7 @@ test.describe('Dynamic Search Panel', () => {
 
     // Since it's a new panel, it should be missing config (Datasource, Metric, etc.)
     await expect(page.getByTestId('dynamic-search-panel-config-warning')).toBeVisible();
-    await expect(page.getByText('Panel not configured')).toBeVisible();
+    await expect(page.getByText('Configuration required')).toBeVisible();
   });
 
   // Test case 2: Verify the panel renders correctly when fully configured
@@ -83,19 +83,19 @@ test.describe('Dynamic Search Panel', () => {
 
     // Verify default hint
     const hint = page.getByTestId('dynamic-search-panel-hint');
-    await expect(hint).toContainText('Min 3 characters');
+    await expect(hint).toContainText('Min 3 chars');
 
     // Update Min Characters
     const minCharsInput = options.getNumberInput('Min Characters');
     await minCharsInput.fill('5');
     await minCharsInput.blur();
-    await expect(hint).toContainText('Min 5 characters');
+    await expect(hint).toContainText('Min 5 chars');
 
     // Update Max Results
     const maxResultsInput = options.getNumberInput('Max Results');
     await maxResultsInput.fill('10');
     await maxResultsInput.blur();
-    await expect(hint).toContainText('Max 10 results');
+    await expect(hint).toContainText('Max 10');
   });
 
   // Test case 4: Verify label requirement logic

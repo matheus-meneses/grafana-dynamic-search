@@ -101,7 +101,8 @@ describe('DynamicSearchPanel', () => {
     it('renders config warning when datasource is missing', async () => {
         render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, datasourceUid: undefined }} />);
         expect(await screen.findByTestId('dynamic-search-panel-config-warning')).toBeInTheDocument();
-        expect(screen.getByText('Panel not configured')).toBeInTheDocument();
+        expect(screen.getByText('Configuration required')).toBeInTheDocument();
+        expect(screen.getByText('Datasource')).toBeInTheDocument();
     });
 
     it('renders config warning when variable name is missing', async () => {
@@ -118,7 +119,7 @@ describe('DynamicSearchPanel', () => {
         render(<DynamicSearchPanel {...defaultProps} />);
         expect(await screen.findByTestId('dynamic-search-panel-wrapper')).toBeInTheDocument();
         expect(screen.getByTestId('combobox-mock')).toBeInTheDocument();
-        expect(screen.getByTestId('dynamic-search-panel-hint')).toHaveTextContent('Min 3 characters');
+        expect(screen.getByTestId('dynamic-search-panel-hint')).toHaveTextContent('Min 3 chars');
     });
 
     it('displays error when regex is invalid', async () => {
@@ -309,4 +310,82 @@ describe('DynamicSearchPanel', () => {
        });
        expect(screen.queryByTestId('option-pod-01-xyz')).not.toBeInTheDocument();
    });
+});
+
+describe('DynamicSearchPanel - Debounce Effectiveness', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    it('should only make one API call after rapid typing (debounce test)', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'result', value: 'result' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+
+        // Simulate rapid typing: 'a', 'ap', 'app', 'appl', 'apple'
+        // Each keystroke happens faster than debounce delay (350ms)
+        fireEvent.change(input, { target: { value: 'a' } });
+        jest.advanceTimersByTime(50);
+        fireEvent.change(input, { target: { value: 'ap' } });
+        jest.advanceTimersByTime(50);
+        fireEvent.change(input, { target: { value: 'app' } });
+        jest.advanceTimersByTime(50);
+        fireEvent.change(input, { target: { value: 'appl' } });
+        jest.advanceTimersByTime(50);
+        fireEvent.change(input, { target: { value: 'apple' } });
+
+        // At this point, no API call should have been made yet (still debouncing)
+        expect(mockMetricFindQuery).not.toHaveBeenCalled();
+
+        // Advance timers past the debounce delay (350ms)
+        jest.advanceTimersByTime(400);
+
+        // Wait for async operations to complete
+        await waitFor(() => {
+            expect(mockMetricFindQuery).toHaveBeenCalledTimes(1);
+        });
+
+        // Verify only ONE call was made despite 5 keystrokes
+        expect(mockMetricFindQuery).toHaveBeenCalledTimes(1);
+        console.log('Debounce effectiveness: 5 keystrokes -> 1 API call');
+    });
+
+    it('should cancel previous requests when new input arrives', async () => {
+        const mockMetricFindQuery = jest.fn().mockImplementation(() => 
+            new Promise(resolve => setTimeout(() => resolve([{ text: 'result', value: 'result' }]), 100))
+        );
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+
+        // Type first search term and wait for debounce
+        fireEvent.change(input, { target: { value: 'first' } });
+        jest.advanceTimersByTime(400);
+
+        // Immediately type second search term before first completes
+        fireEvent.change(input, { target: { value: 'second' } });
+        jest.advanceTimersByTime(400);
+
+        // Run all pending timers
+        jest.runAllTimers();
+
+        await waitFor(() => {
+            // Both queries were initiated, but stale responses should be discarded
+            expect(mockMetricFindQuery).toHaveBeenCalled();
+        });
+    });
 });

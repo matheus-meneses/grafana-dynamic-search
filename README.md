@@ -7,9 +7,17 @@
 
 A Grafana panel plugin that brings real-time, dynamic search capabilities to your dashboards. Query Prometheus directly from a search box with autocomplete suggestions and instantly update dashboard variables based on your selection.
 
-![Dynamic Search Demo](resources/dynamic-search-demo.gif)
+![Dynamic Search Demo](src/img/dynamic-search-demo.gif)
 
 > Searching for an API path and automatically updating the `path` variable on the dashboard.
+
+## Quick Start
+
+1. **Install:** `grafana-cli plugins install matheusmeneses-dynamicsearch-panel`
+2. **Create variable:** Add a *Text box* variable to your dashboard (e.g., `path`)
+3. **Add panel:** Select *Dynamic Search* and configure your Prometheus datasource
+4. **Configure:** Set the label, metric, and target variable name
+5. **Search:** Start typing to see results!
 
 ## Why Dynamic Search?
 
@@ -36,7 +44,7 @@ Dynamic Search solves this by letting users type and search through values in re
 ### Grafana CLI
 
 ```bash
-grafana-cli plugins install matheusmenses-dynamicsearch-panel
+grafana-cli plugins install matheusmeneses-dynamicsearch-panel
 ```
 
 ### Manual Installation

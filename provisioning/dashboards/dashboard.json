@@ -49,7 +49,7 @@
       "pluginVersion": "1.0.0",
       "targets": [],
       "title": "Dynamic Search",
-      "type": "matheusmenses-dynamicsearch-panel"
+      "type": "matheusmeneses-dynamicsearch-panel"
     }
   ],
   "preload": false,
