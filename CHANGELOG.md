@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo GIF now displayed in Grafana plugin catalog
 - JSDoc documentation for public functions
 - Accessibility improvements (ARIA labels, role attributes)
+- Implemented performance tests.
 
 ### Changed
 

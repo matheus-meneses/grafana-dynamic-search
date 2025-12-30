@@ -7,6 +7,8 @@
     "test": "jest --watch --onlyChanged",
     "test:ci": "jest --passWithNoTests --maxWorkers 4",
     "test:coverage": "jest --passWithNoTests --maxWorkers 4 --coverage",
+    "test:perf": "jest --testMatch='**/*.bench.ts' --verbose",
+    "test:all": "npm run test:ci && npm run e2e",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --cache .",
     "lint:fix": "npm run lint -- --fix && prettier --write --list-different .",
