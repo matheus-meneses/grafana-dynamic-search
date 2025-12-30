@@ -7,6 +7,13 @@ export interface SimpleOptions {
     metric: string;
     variableName?: string;
     regex?: string;
-    minChars: number;
-    maxResults: number;
+    minChars?: number;
+    maxResults?: number;
+}
+
+/** Options required for building a query */
+export interface QueryOptions {
+    queryType: QueryType;
+    label?: string;
+    metric: string;
 }

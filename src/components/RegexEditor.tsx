@@ -31,40 +31,37 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
 });
 
+const validateRegex = (pattern: string): { valid: boolean; error: string | null } => {
+    if (!pattern) {
+        return { valid: true, error: null };
+    }
+    try {
+        new RegExp(pattern);
+        return { valid: true, error: null };
+    } catch (e) {
+        return { valid: false, error: (e as Error).message };
+    }
+};
+
 export const RegexEditor: React.FC<StandardEditorProps<string>> = ({ value, onChange }) => {
     const styles = useStyles2(getStyles);
     const [inputValue, setInputValue] = useState(value || '');
 
-    // Validate regex directly during render (derived state)
-    const validation = useMemo(() => {
-        if (!inputValue) {
-            return { valid: true, error: null };
-        }
-        try {
-            new RegExp(inputValue);
-            return { valid: true, error: null };
-        } catch (e) {
-            return { valid: false, error: (e as Error).message };
-        }
-    }, [inputValue]);
+    const validation = useMemo(() => validateRegex(inputValue), [inputValue]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
         setInputValue(newValue);
 
-        // Only update parent if regex is valid (or empty)
-        try {
-            if (newValue) {
-                new RegExp(newValue);
-            }
+        // Validation will be recalculated via useMemo on next render,
+        // but we need immediate result for onChange
+        const { valid } = validateRegex(newValue);
+        if (valid) {
             onChange(newValue);
-        } catch {
-            // Don't update parent if invalid - keeps last valid value
         }
     };
 
     const handleBlur = () => {
-        // On blur, always sync to parent (even if empty)
         if (validation.valid) {
             onChange(inputValue);
         }
@@ -79,7 +76,6 @@ export const RegexEditor: React.FC<StandardEditorProps<string>> = ({ value, onCh
                 placeholder="e.g. /api/(.*)"
             />
 
-            {/* Validation feedback */}
             {inputValue ? (
                 validation.valid ? (
                     <div className={`${styles.feedback} ${styles.valid}`}>

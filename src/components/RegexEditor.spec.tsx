@@ -55,26 +55,5 @@ describe('RegexEditor', () => {
         expect(mockOnChange).not.toHaveBeenCalled();
         expect(screen.getByTestId('dynamic-search-panel-regex-error')).toBeInTheDocument();
     });
-
-    it('validates regex but catches error when updating parent fails (coverage for try/catch)', () => {
-        // This covers the catch block in handleChange (lines 61-63)
-        // We need new RegExp(newValue) to throw inside the try block AFTER check?
-        // Actually, the try block checks validity first: new RegExp(newValue).
-        // If that succeeds, it calls onChange.
-        // If onChange throws?
-        
-        const throwingOnChange = jest.fn().mockImplementation(() => {
-            throw new Error('Parent error');
-        });
-        
-        render(<RegexEditor {...defaultProps} onChange={throwingOnChange} />);
-        const input = screen.getByPlaceholderText('e.g. /api/(.*)');
-        
-        // Type valid regex, should trigger onChange, which throws, caught by catch block
-        fireEvent.change(input, { target: { value: 'abc' } });
-        
-        expect(throwingOnChange).toHaveBeenCalledWith('abc');
-        // No crash
-    });
 });
 

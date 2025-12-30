@@ -1,22 +1,26 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { PanelProps, SelectableValue, GrafanaTheme2 } from '@grafana/data';
 import { SimpleOptions } from 'types';
-import { css, cx } from '@emotion/css';
-import { useStyles2, Combobox, Icon, useTheme2 } from '@grafana/ui';
+import { css } from '@emotion/css';
+import { useStyles2, Combobox, Icon } from '@grafana/ui';
 import { getDataSourceSrv, locationService } from '@grafana/runtime';
-import { buildQuery, applyRegexFilter, MIN_SEARCH_LENGTH } from '../utils';
+import { buildQuery, applyRegexTransform, MIN_SEARCH_LENGTH, DEBOUNCE_DELAY } from '../utils';
 
 interface Props extends PanelProps<SimpleOptions> {}
 
+/**
+ * Dynamic Search Panel component.
+ * Provides a searchable dropdown that queries Prometheus and updates dashboard variables.
+ */
 const getStyles = (theme: GrafanaTheme2) => {
   return {
     wrapper: css`
       display: flex;
       flex-direction: column;
       justify-content: center;
-      height: 100%;
       padding: ${theme.spacing(2)};
       background: transparent;
+      overflow: hidden;
     `,
     searchContainer: css`
       display: flex;
@@ -33,9 +37,9 @@ const getStyles = (theme: GrafanaTheme2) => {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: ${theme.spacing(1.5)};
-      padding-top: ${theme.spacing(1)};
-      border-top: 1px solid ${theme.colors.border.weak};
+      margin-top: ${theme.spacing(1)};
+      padding-top: ${theme.spacing(0.5)};
+      min-height: 24px;
     `,
     hint: css`
       display: flex;
@@ -43,6 +47,13 @@ const getStyles = (theme: GrafanaTheme2) => {
       gap: ${theme.spacing(0.5)};
       font-size: ${theme.typography.bodySmall.fontSize};
       color: ${theme.colors.text.disabled};
+    `,
+    hintError: css`
+      display: flex;
+      align-items: center;
+      gap: ${theme.spacing(0.5)};
+      font-size: ${theme.typography.bodySmall.fontSize};
+      color: ${theme.colors.error.text};
     `,
     selectedBadge: css`
       display: inline-flex;
@@ -62,7 +73,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       justify-content: center;
       height: 100%;
       text-align: center;
-      gap: ${theme.spacing(1.5)};
+      gap: ${theme.spacing(1)};
       padding: ${theme.spacing(2)};
     `,
     warningIcon: css`
@@ -74,71 +85,88 @@ const getStyles = (theme: GrafanaTheme2) => {
       font-weight: ${theme.typography.fontWeightMedium};
       color: ${theme.colors.text.primary};
     `,
-    warningText: css`
+    warningList: css`
       font-size: ${theme.typography.bodySmall.fontSize};
       color: ${theme.colors.text.secondary};
-      max-width: 200px;
+      text-align: left;
+      margin: 0;
+      padding-left: ${theme.spacing(2)};
     `,
   };
 };
 
+interface ConfigStatus {
+  configured: boolean;
+  missing: string[];
+}
+
 export const DynamicSearchPanel: React.FC<Props> = ({ options, width, height }) => {
-  const theme = useTheme2();
   const styles = useStyles2(getStyles);
   const [selectedValue, setSelectedValue] = useState<SelectableValue<string> | null>(null);
 
+  const { datasourceUid, queryType, label, metric, variableName, regex } = options;
   const minChars = options.minChars ?? MIN_SEARCH_LENGTH;
   const maxResults = options.maxResults ?? 0;
 
-  // Check if panel is configured
-  const isConfigured = useMemo(() => {
-    // 1. Datasource is required
-    if (!options.datasourceUid) {
-        return false;
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceResolveRef = useRef<(() => void) | null>(null);
+  const requestIdRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup pending operations on unmount
+      abortControllerRef.current?.abort();
+      if (debounceResolveRef.current) {
+        debounceResolveRef.current();
+        debounceResolveRef.current = null;
+      }
+    };
+  }, []);
+
+  const configStatus = useMemo((): ConfigStatus => {
+    const missing: string[] = [];
+
+    if (!datasourceUid) {
+      missing.push('Datasource');
     }
 
-    // 2. Metric is required (existing logic kept it, user didn't mention it but previously it was required. 
-    //    User asked "If query type equals label values, label box is required". 
-    //    We should keep metric required as per original logic unless specified otherwise, but strict reading of new rules:
-    //    "Datasource is required."
-    //    "If query type equals label values, label box is required."
-    //    "Target variable is required."
-    //    Previous metric check: options.metric. 
-    //    Let's keep metric check as it seems fundamental for the query.
-
-    if (!options.metric) {
-        return false;
+    if (!metric) {
+      missing.push('Metric');
     }
 
-    // 3. Target variable is required
-    if (!options.variableName) {
-        return false;
+    if (!variableName) {
+      missing.push('Target Variable');
     }
 
-    // 4. If query type equals label values, label box is required
-    if (options.queryType === 'label_values' && !options.label) {
-        return false;
+    if (queryType === 'label_values' && !label) {
+      missing.push('Label (required for Label Values query)');
     }
 
-    return true;
-  }, [options.datasourceUid, options.metric, options.variableName, options.queryType, options.label]);
+    return {
+      configured: missing.length === 0,
+      missing,
+    };
+  }, [datasourceUid, metric, variableName, queryType, label]);
 
-  // Compile and validate regex when option changes
   const compiledRegex = useMemo(() => {
-    if (!options.regex) {
+    if (!regex) {
       return { regex: null, error: null };
     }
     try {
-      return { regex: new RegExp(options.regex), error: null };
+      return { regex: new RegExp(regex), error: null };
     } catch (e) {
       return { regex: null, error: (e as Error).message };
     }
-  }, [options.regex]);
+  }, [regex]);
 
   const loadOptions = useCallback(
     async (inputValue: string) => {
-      const { datasourceUid } = options;
-      const { regex } = compiledRegex;
+      abortControllerRef.current?.abort();
+
+      if (debounceResolveRef.current) {
+        debounceResolveRef.current();
+        debounceResolveRef.current = null;
+      }
 
       if (!datasourceUid) {
         return [];
@@ -148,19 +176,45 @@ export const DynamicSearchPanel: React.FC<Props> = ({ options, width, height }) 
         return [];
       }
 
+      const currentRequestId = ++requestIdRef.current;
+
+      const shouldProceed = await new Promise<boolean>((resolve) => {
+        debounceResolveRef.current = () => resolve(false);
+        setTimeout(() => {
+          debounceResolveRef.current = null;
+          resolve(true);
+        }, DEBOUNCE_DELAY);
+      });
+
+      if (!shouldProceed || currentRequestId !== requestIdRef.current) {
+        return [];
+      }
+
+      abortControllerRef.current = new AbortController();
+      const { regex: compiledRegexPattern } = compiledRegex;
+
+
       try {
         const ds = await getDataSourceSrv().get(datasourceUid);
+
+        if (currentRequestId !== requestIdRef.current || abortControllerRef.current?.signal.aborted) {
+          return [];
+        }
 
         if (!ds.metricFindQuery) {
           return [];
         }
 
-        const query = buildQuery(options, inputValue);
+        const query = buildQuery({ queryType, label, metric });
         if (!query) {
-             return [];
+          return [];
         }
 
         const results = await ds.metricFindQuery(query, {});
+
+        if (currentRequestId !== requestIdRef.current || abortControllerRef.current?.signal.aborted) {
+          return [];
+        }
 
         let filteredResults = results;
         if (inputValue) {
@@ -169,118 +223,113 @@ export const DynamicSearchPanel: React.FC<Props> = ({ options, width, height }) 
         }
 
         if (filteredResults.length === 0) {
-           return [];
+          return [];
         }
 
-        let regexFiltered = applyRegexFilter(filteredResults, regex);
+        let regexFiltered = applyRegexTransform(filteredResults, compiledRegexPattern);
 
         if (maxResults > 0) {
-            regexFiltered = regexFiltered.slice(0, maxResults);
+          regexFiltered = regexFiltered.slice(0, maxResults);
         }
 
-        // Map to valid ComboboxOption (value must be string, not undefined)
         return regexFiltered.map(r => ({
-            label: r.label || r.value || '',
-            value: r.value || '',
-            description: r.description
+          label: r.label || r.value || '',
+          value: r.value || '',
+          description: r.description
         }));
       } catch (err) {
+        if (currentRequestId !== requestIdRef.current || abortControllerRef.current?.signal.aborted) {
+          return [];
+        }
         console.error('Failed to load options:', err);
         return [];
       }
     },
-    [options, compiledRegex, minChars, maxResults]
+    [datasourceUid, queryType, label, metric, compiledRegex, minChars, maxResults]
   );
 
   const handleChange = useCallback(
     (item: SelectableValue<string> | null) => {
-      // Combobox returns ComboboxOption which is compatible enough if we cast or construct
       if (!item) {
         setSelectedValue(null);
         return;
       }
-      
+
       const newValue: SelectableValue<string> = {
-          label: item.label,
-          value: item.value,
-          description: item.description
+        label: item.label,
+        value: item.value,
+        description: item.description
       };
-      
+
       setSelectedValue(newValue);
 
-      if (options.variableName && newValue.value) {
-        locationService.partial({ [`var-${options.variableName}`]: newValue.value }, true);
+      if (variableName && newValue.value) {
+        locationService.partial({ [`var-${variableName}`]: newValue.value }, true);
       }
     },
-    [options.variableName]
+    [variableName]
   );
 
-  // Show configuration warning if not properly set up
-  if (!isConfigured) {
+  const panelStyle = useMemo(() => ({
+    width,
+    height,
+  }), [width, height]);
+
+  if (!configStatus.configured) {
     return (
       <div
-        className={cx(
-          styles.wrapper,
-          css`
-            width: ${width}px;
-            height: ${height}px;
-          `
-        )}
+        className={styles.wrapper}
+        style={panelStyle}
         data-testid="dynamic-search-panel-config-warning"
       >
         <div className={styles.configWarning}>
-          <Icon name="sliders-v-alt" size="xxl" className={styles.warningIcon} />
-          <div className={styles.warningTitle}>Panel not configured</div>
-          <div className={styles.warningText}>
-            Open panel options to set datasource, query settings, and target variable
-          </div>
+          <Icon name="sliders-v-alt" size="xl" className={styles.warningIcon} />
+          <div className={styles.warningTitle}>Configuration required</div>
+          <ul className={styles.warningList}>
+            {configStatus.missing.map((field) => (
+              <li key={field}>{field}</li>
+            ))}
+          </ul>
         </div>
       </div>
     );
   }
 
-  // Combobox requires value to be formatted correctly if object
-  const comboboxValue = selectedValue ? { label: selectedValue.label || selectedValue.value || '', value: selectedValue.value || '' } : null;
+  const comboboxValue = selectedValue
+    ? { label: selectedValue.label || selectedValue.value || '', value: selectedValue.value || '' }
+    : null;
 
   return (
     <div
-      className={cx(
-        styles.wrapper,
-        css`
-          width: ${width}px;
-          height: ${height}px;
-        `
-      )}
+      className={styles.wrapper}
+      style={panelStyle}
       data-testid="dynamic-search-panel-wrapper"
+      role="search"
+      aria-label="Dynamic search panel"
     >
       <div className={styles.searchContainer}>
-        {/* Search dropdown - clean, no header */}
         <div className={styles.selectContainer} data-testid="dynamic-search-panel-select-container">
           <Combobox
             options={loadOptions}
             onChange={handleChange}
             value={comboboxValue}
-            placeholder="🔍 Search..."
+            placeholder="Type to search..."
             isClearable
+            id="dynamic-search-input"
           />
         </div>
 
-        {/* Footer with hint/error and selected value badge */}
         <div className={styles.footer}>
           {compiledRegex.error ? (
-            <div
-              className={styles.hint}
-              style={{ color: theme.colors.error.text }}
-              data-testid="dynamic-search-panel-regex-error"
-            >
+            <div className={styles.hintError} data-testid="dynamic-search-panel-regex-error">
               <Icon name="exclamation-triangle" size="sm" />
               <span>Invalid regex: {compiledRegex.error}</span>
             </div>
           ) : (
             <div className={styles.hint} data-testid="dynamic-search-panel-hint">
               <Icon name="keyboard" size="sm" />
-              <span>Min {minChars} characters</span>
-              {maxResults > 0 && <span>• Max {maxResults} results</span>}
+              <span>Min {minChars} chars</span>
+              {maxResults > 0 && <span>• Max {maxResults}</span>}
             </div>
           )}
 

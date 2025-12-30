@@ -101,7 +101,8 @@ describe('DynamicSearchPanel', () => {
     it('renders config warning when datasource is missing', async () => {
         render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, datasourceUid: undefined }} />);
         expect(await screen.findByTestId('dynamic-search-panel-config-warning')).toBeInTheDocument();
-        expect(screen.getByText('Panel not configured')).toBeInTheDocument();
+        expect(screen.getByText('Configuration required')).toBeInTheDocument();
+        expect(screen.getByText('Datasource')).toBeInTheDocument();
     });
 
     it('renders config warning when variable name is missing', async () => {
@@ -118,7 +119,7 @@ describe('DynamicSearchPanel', () => {
         render(<DynamicSearchPanel {...defaultProps} />);
         expect(await screen.findByTestId('dynamic-search-panel-wrapper')).toBeInTheDocument();
         expect(screen.getByTestId('combobox-mock')).toBeInTheDocument();
-        expect(screen.getByTestId('dynamic-search-panel-hint')).toHaveTextContent('Min 3 characters');
+        expect(screen.getByTestId('dynamic-search-panel-hint')).toHaveTextContent('Min 3 chars');
     });
 
     it('displays error when regex is invalid', async () => {
