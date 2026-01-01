@@ -37,17 +37,18 @@ test.describe('Dynamic Search Panel', () => {
 
     const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
     
-    const options = panelEditPage.getCustomOptions('Dynamic Search');
-    // Interact directly with the combobox
-    const dsSelect = options.element.getByRole('combobox', { name: 'Select a data source' });
+    const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
+    const queryOptions = panelEditPage.getCustomOptions('Query');
+    const variableOptions = panelEditPage.getCustomOptions('Variable');
+
+    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
-    // Configure required options
-    await options.getTextInput('Metric *').fill('up');
-    await options.getTextInput('Target Variable *').fill('test_var');
-    await options.getTextInput('Label *').fill('job');
-    await options.getTextInput('Label *').blur();
+    await queryOptions.getTextInput('Metric *').fill('up');
+    await variableOptions.getTextInput('Target Variable *').fill('test_var');
+    await queryOptions.getTextInput('Label *').fill('job');
+    await queryOptions.getTextInput('Label *').blur();
 
     // Should now show the main wrapper and search container
     // We wait for the warning to disappear first to ensure state transition
@@ -70,29 +71,29 @@ test.describe('Dynamic Search Panel', () => {
 
     const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
     
-    const options = panelEditPage.getCustomOptions('Dynamic Search');
-    const dsSelect = options.element.getByRole('combobox', { name: 'Select a data source' });
+    const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
+    const queryOptions = panelEditPage.getCustomOptions('Query');
+    const variableOptions = panelEditPage.getCustomOptions('Variable');
+    const displayOptions = panelEditPage.getCustomOptions('Display');
+
+    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
-    // Initial config
-    await options.getTextInput('Metric *').fill('up');
-    await options.getTextInput('Target Variable *').fill('test_var');
-    await options.getTextInput('Label *').fill('job');
-    await options.getTextInput('Label *').blur();
+    await queryOptions.getTextInput('Metric *').fill('up');
+    await variableOptions.getTextInput('Target Variable *').fill('test_var');
+    await queryOptions.getTextInput('Label *').fill('job');
+    await queryOptions.getTextInput('Label *').blur();
 
-    // Verify default hint
     const hint = page.getByTestId('dynamic-search-panel-hint');
     await expect(hint).toContainText('Min 3 chars');
 
-    // Update Min Characters
-    const minCharsInput = options.getNumberInput('Min Characters');
+    const minCharsInput = displayOptions.getNumberInput('Min Characters');
     await minCharsInput.fill('5');
     await minCharsInput.blur();
     await expect(hint).toContainText('Min 5 chars');
 
-    // Update Max Results
-    const maxResultsInput = options.getNumberInput('Max Results');
+    const maxResultsInput = displayOptions.getNumberInput('Max Results');
     await maxResultsInput.fill('10');
     await maxResultsInput.blur();
     await expect(hint).toContainText('Max 10');
@@ -112,24 +113,23 @@ test.describe('Dynamic Search Panel', () => {
 
     const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
     
-    const options = panelEditPage.getCustomOptions('Dynamic Search');
-    const dsSelect = options.element.getByRole('combobox', { name: 'Select a data source' });
+    const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
+    const queryOptions = panelEditPage.getCustomOptions('Query');
+    const variableOptions = panelEditPage.getCustomOptions('Variable');
+
+    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
-    await options.getTextInput('Metric *').fill('up');
-    await options.getTextInput('Target Variable *').fill('test_var');
-    // Ensure Label is empty (it is by default, but to be sure)
-    await options.getTextInput('Label *').fill('');
-    await options.getTextInput('Label *').blur();
+    await queryOptions.getTextInput('Metric *').fill('up');
+    await variableOptions.getTextInput('Target Variable *').fill('test_var');
+    await queryOptions.getTextInput('Label *').fill('');
+    await queryOptions.getTextInput('Label *').blur();
 
-    // By default query type is label_values. 
-    // If we don't provide a label, it should warn.
     await expect(page.getByTestId('dynamic-search-panel-config-warning')).toBeVisible();
 
-    // Now provide a label
-    await options.getTextInput('Label *').fill('instance');
-    await options.getTextInput('Label *').blur();
+    await queryOptions.getTextInput('Label *').fill('instance');
+    await queryOptions.getTextInput('Label *').blur();
     
     // Warning should disappear
     await expect(page.getByTestId('dynamic-search-panel-config-warning')).not.toBeVisible();
@@ -149,21 +149,23 @@ test.describe('Dynamic Search Panel', () => {
     await panelEditPage.setVisualization('Dynamic Search');
 
     const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
-    const options = panelEditPage.getCustomOptions('Dynamic Search');
-    const dsSelect = options.element.getByRole('combobox', { name: 'Select a data source' });
+    
+    const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
+    const queryOptions = panelEditPage.getCustomOptions('Query');
+    const variableOptions = panelEditPage.getCustomOptions('Variable');
+
+    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
-    await options.getTextInput('Metric *').fill('up');
-    await options.getTextInput('Target Variable *').fill('test_var');
-    await options.getTextInput('Label *').fill(''); // Empty label
-    await options.getTextInput('Label *').blur();
+    await queryOptions.getTextInput('Metric *').fill('up');
+    await variableOptions.getTextInput('Target Variable *').fill('test_var');
+    await queryOptions.getTextInput('Label *').fill('');
+    await queryOptions.getTextInput('Label *').blur();
 
-    // Should warn initially because default is label_values
     await expect(page.getByTestId('dynamic-search-panel-config-warning')).toBeVisible();
 
-    // Change Query Type to Label names
-    const queryTypeSelect = options.getSelect('Query type');
+    const queryTypeSelect = queryOptions.getSelect('Query type');
     await queryTypeSelect.selectOption('Label names');
 
     // Warning should disappear
@@ -184,18 +186,22 @@ test.describe('Dynamic Search Panel', () => {
     await panelEditPage.setVisualization('Dynamic Search');
 
     const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
-    const options = panelEditPage.getCustomOptions('Dynamic Search');
-    const dsSelect = options.element.getByRole('combobox', { name: 'Select a data source' });
+    
+    const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
+    const queryOptions = panelEditPage.getCustomOptions('Query');
+    const variableOptions = panelEditPage.getCustomOptions('Variable');
+    const transformOptions = panelEditPage.getCustomOptions('Transform');
+
+    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
-    await options.getTextInput('Metric *').fill('up');
-    await options.getTextInput('Target Variable *').fill('test_var');
-    await options.getTextInput('Label *').fill('job');
-    await options.getTextInput('Label *').blur();
+    await queryOptions.getTextInput('Metric *').fill('up');
+    await variableOptions.getTextInput('Target Variable *').fill('test_var');
+    await queryOptions.getTextInput('Label *').fill('job');
+    await queryOptions.getTextInput('Label *').blur();
 
-    // Configure invalid regex
-    const regexInput = options.element.getByPlaceholder('e.g. /api/(.*)');
+    const regexInput = transformOptions.element.getByPlaceholder('e.g. /api/(.*)');
     await regexInput.fill('[invalid');
     await regexInput.blur();
 
@@ -215,21 +221,17 @@ test.describe('Dynamic Search Panel', () => {
     const panelEditPage = await dashboardPage.addPanel();
     await panelEditPage.setVisualization('Dynamic Search');
     
-    const options = panelEditPage.getCustomOptions('Dynamic Search');
+    const queryOptions = panelEditPage.getCustomOptions('Query');
     
-    // Default is label_values, Label field should be visible
-    await expect(options.getTextInput('Label *')).toBeVisible();
+    await expect(queryOptions.getTextInput('Label *')).toBeVisible();
     
-    // Change to 'Metrics'
-    const queryTypeSelect = options.getSelect('Query type');
+    const queryTypeSelect = queryOptions.getSelect('Query type');
     await queryTypeSelect.selectOption('Metrics');
     
-    // Label field should be hidden
-    await expect(options.getTextInput('Label *')).not.toBeVisible();
+    await expect(queryOptions.getTextInput('Label *')).not.toBeVisible();
     
-    // Change back to 'Label values'
     await queryTypeSelect.selectOption('Label values');
-    await expect(options.getTextInput('Label *')).toBeVisible();
+    await expect(queryOptions.getTextInput('Label *')).toBeVisible();
   });
 
   // Test case 8: Search with real data (Provisioned Dashboard)
@@ -247,16 +249,19 @@ test.describe('Dynamic Search Panel', () => {
     await panelEditPage.setVisualization('Dynamic Search');
 
     const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
-    const options = panelEditPage.getCustomOptions('Dynamic Search');
     
-    const dsSelect = options.element.getByRole('combobox', { name: 'Select a data source' });
+    const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
+    const queryOptions = panelEditPage.getCustomOptions('Query');
+    const variableOptions = panelEditPage.getCustomOptions('Variable');
+
+    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
-    await options.getTextInput('Metric *').fill('prometheus_http_requests_total');
-    await options.getTextInput('Target Variable *').fill('api');
-    await options.getTextInput('Label *').fill('handler');
-    await options.getTextInput('Label *').blur();
+    await queryOptions.getTextInput('Metric *').fill('prometheus_http_requests_total');
+    await variableOptions.getTextInput('Target Variable *').fill('api');
+    await queryOptions.getTextInput('Label *').fill('handler');
+    await queryOptions.getTextInput('Label *').blur();
     
     // Return to dashboard to test the panel in view mode
     await panelEditPage.apply();

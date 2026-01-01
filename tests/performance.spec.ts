@@ -17,16 +17,19 @@ test.describe('Performance', () => {
     await panelEditPage.setVisualization('Dynamic Search');
 
     const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
-    const options = panelEditPage.getCustomOptions('Dynamic Search');
     
-    const dsSelect = options.element.getByRole('combobox', { name: 'Select a data source' });
+    const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
+    const queryOptions = panelEditPage.getCustomOptions('Query');
+    const variableOptions = panelEditPage.getCustomOptions('Variable');
+
+    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
-    await options.getTextInput('Metric *').fill('prometheus_http_requests_total');
-    await options.getTextInput('Target Variable *').fill('perf_test');
-    await options.getTextInput('Label *').fill('handler');
-    await options.getTextInput('Label *').blur();
+    await queryOptions.getTextInput('Metric *').fill('prometheus_http_requests_total');
+    await variableOptions.getTextInput('Target Variable *').fill('perf_test');
+    await queryOptions.getTextInput('Label *').fill('handler');
+    await queryOptions.getTextInput('Label *').blur();
 
     await panelEditPage.apply();
 
@@ -85,16 +88,19 @@ test.describe('Performance', () => {
     await panelEditPage.setVisualization('Dynamic Search');
 
     const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
-    const options = panelEditPage.getCustomOptions('Dynamic Search');
     
-    const dsSelect = options.element.getByRole('combobox', { name: 'Select a data source' });
+    const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
+    const queryOptions = panelEditPage.getCustomOptions('Query');
+    const variableOptions = panelEditPage.getCustomOptions('Variable');
+
+    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
-    await options.getTextInput('Metric *').fill('up');
-    await options.getTextInput('Target Variable *').fill('debounce_test');
-    await options.getTextInput('Label *').fill('job');
-    await options.getTextInput('Label *').blur();
+    await queryOptions.getTextInput('Metric *').fill('up');
+    await variableOptions.getTextInput('Target Variable *').fill('debounce_test');
+    await queryOptions.getTextInput('Label *').fill('job');
+    await queryOptions.getTextInput('Label *').blur();
 
     await panelEditPage.apply();
 
@@ -125,4 +131,6 @@ test.describe('Performance', () => {
     expect(apiCalls.length).toBeLessThan(5);
   });
 });
+
+
 

@@ -55,5 +55,81 @@ describe('RegexEditor', () => {
         expect(mockOnChange).not.toHaveBeenCalled();
         expect(screen.getByTestId('dynamic-search-panel-regex-error')).toBeInTheDocument();
     });
+
+    it('calls onChange on blur with valid regex', () => {
+        render(<RegexEditor {...defaultProps} />);
+        const input = screen.getByPlaceholderText('e.g. /api/(.*)');
+        
+        fireEvent.change(input, { target: { value: 'test.*' } });
+        mockOnChange.mockClear();
+        
+        fireEvent.blur(input);
+        
+        expect(mockOnChange).toHaveBeenCalledWith('test.*');
+    });
+
+    it('does not call onChange on blur with invalid regex', () => {
+        render(<RegexEditor {...defaultProps} />);
+        const input = screen.getByPlaceholderText('e.g. /api/(.*)');
+        
+        fireEvent.change(input, { target: { value: '[' } });
+        mockOnChange.mockClear();
+        
+        fireEvent.blur(input);
+        
+        expect(mockOnChange).not.toHaveBeenCalled();
+    });
+
+    it('shows test preview section when valid regex is entered', () => {
+        render(<RegexEditor {...defaultProps} value="node-(\d+)" />);
+        
+        expect(screen.getByText('Test your regex:')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('Enter a sample value to test')).toBeInTheDocument();
+    });
+
+    it('does not show test preview section when regex is empty', () => {
+        render(<RegexEditor {...defaultProps} value="" />);
+        
+        expect(screen.queryByText('Test your regex:')).not.toBeInTheDocument();
+    });
+
+    it('does not show test preview section when regex is invalid', () => {
+        render(<RegexEditor {...defaultProps} value="[" />);
+        
+        expect(screen.queryByText('Test your regex:')).not.toBeInTheDocument();
+    });
+
+    it('shows match result when test value matches regex with capture group', () => {
+        render(<RegexEditor {...defaultProps} value="node-(\d+)" />);
+        
+        const testInput = screen.getByPlaceholderText('Enter a sample value to test');
+        fireEvent.change(testInput, { target: { value: 'node-01' } });
+        
+        expect(screen.getByText('01')).toBeInTheDocument();
+    });
+
+    it('shows match result when test value matches regex without capture group', () => {
+        render(<RegexEditor {...defaultProps} value="node" />);
+        
+        const testInput = screen.getByPlaceholderText('Enter a sample value to test');
+        fireEvent.change(testInput, { target: { value: 'node-01' } });
+        
+        expect(screen.getByText('node')).toBeInTheDocument();
+    });
+
+    it('shows no match when test value does not match regex', () => {
+        render(<RegexEditor {...defaultProps} value="node-(\d+)" />);
+        
+        const testInput = screen.getByPlaceholderText('Enter a sample value to test');
+        fireEvent.change(testInput, { target: { value: 'other-value' } });
+        
+        expect(screen.getByText('No match')).toBeInTheDocument();
+    });
+
+    it('does not show preview result when test input is empty', () => {
+        render(<RegexEditor {...defaultProps} value="node-(\d+)" />);
+        
+        expect(screen.queryByText('No match')).not.toBeInTheDocument();
+    });
 });
 

@@ -4,11 +4,11 @@ import { DynamicSearchPanel } from './DynamicSearchPanel';
 import { PanelProps, LoadingState } from '@grafana/data';
 import { SimpleOptions } from '../types';
 
-// Mocks
 const mockGetDataSourceSrv = jest.fn();
 const mockLocationService = {
   partial: jest.fn(),
 };
+const mockGetVariables = jest.fn();
 
 jest.mock('@grafana/runtime', () => ({
   ...jest.requireActual('@grafana/runtime'),
@@ -18,6 +18,9 @@ jest.mock('@grafana/runtime', () => ({
   locationService: {
     partial: (...args: any[]) => mockLocationService.partial(...args),
   },
+  getTemplateSrv: () => ({
+    getVariables: () => mockGetVariables(),
+  }),
 }));
 
 // Mock Grafana UI components to simplify testing
@@ -96,6 +99,7 @@ const defaultProps: PanelProps<SimpleOptions> = {
 describe('DynamicSearchPanel', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
     });
 
     it('renders config warning when datasource is missing', async () => {
@@ -316,6 +320,7 @@ describe('DynamicSearchPanel - Debounce Effectiveness', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         jest.useFakeTimers();
+        mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
     });
 
     afterEach(() => {
@@ -356,9 +361,7 @@ describe('DynamicSearchPanel - Debounce Effectiveness', () => {
             expect(mockMetricFindQuery).toHaveBeenCalledTimes(1);
         });
 
-        // Verify only ONE call was made despite 5 keystrokes
         expect(mockMetricFindQuery).toHaveBeenCalledTimes(1);
-        console.log('Debounce effectiveness: 5 keystrokes -> 1 API call');
     });
 
     it('should cancel previous requests when new input arrives', async () => {
@@ -384,8 +387,214 @@ describe('DynamicSearchPanel - Debounce Effectiveness', () => {
         jest.runAllTimers();
 
         await waitFor(() => {
-            // Both queries were initiated, but stale responses should be discarded
             expect(mockMetricFindQuery).toHaveBeenCalled();
         });
+    });
+});
+
+describe('DynamicSearchPanel - maxResults', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
+    });
+
+    it('should limit results when maxResults is set', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'result1', value: 'result1' },
+            { text: 'result2', value: 'result2' },
+            { text: 'result3', value: 'result3' },
+            { text: 'result4', value: 'result4' },
+            { text: 'result5', value: 'result5' },
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, maxResults: 2 }} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'result' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-result1')).toBeInTheDocument();
+            expect(screen.getByTestId('option-result2')).toBeInTheDocument();
+        });
+
+        expect(screen.queryByTestId('option-result3')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('option-result4')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('option-result5')).not.toBeInTheDocument();
+    });
+
+    it('should show all results when maxResults is 0', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'result1', value: 'result1' },
+            { text: 'result2', value: 'result2' },
+            { text: 'result3', value: 'result3' },
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, maxResults: 0 }} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'result' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-result1')).toBeInTheDocument();
+            expect(screen.getByTestId('option-result2')).toBeInTheDocument();
+            expect(screen.getByTestId('option-result3')).toBeInTheDocument();
+        });
+    });
+});
+
+describe('DynamicSearchPanel - Selected Badge', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
+    });
+
+    it('should display selected badge after selection', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'selected-value', value: 'selected-value' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'selected' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-selected-value')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('option-selected-value'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toBeInTheDocument();
+        });
+        expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toHaveTextContent('selected-value');
+    });
+
+    it('should hide selected badge after clearing', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'value', value: 'value' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'val' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-value')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('option-value'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('combobox-clear'));
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('dynamic-search-panel-selected-badge')).not.toBeInTheDocument();
+        });
+    });
+});
+
+describe('DynamicSearchPanel - Cleanup', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
+    });
+
+    it('should cleanup on unmount without errors', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'result', value: 'result' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        const { unmount } = render(<DynamicSearchPanel {...defaultProps} />);
+
+        expect(() => unmount()).not.toThrow();
+    });
+
+    it('should abort pending requests on unmount', async () => {
+        const mockMetricFindQuery = jest.fn().mockImplementation(() => {
+            return new Promise((resolve) => {
+                setTimeout(() => resolve([{ text: 'result', value: 'result' }]), 1000);
+            });
+        });
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        const { unmount } = render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'test' } });
+
+        await waitFor(() => {
+            expect(mockMetricFindQuery).toHaveBeenCalled();
+        }, { timeout: 500 });
+
+        expect(() => unmount()).not.toThrow();
+    });
+});
+
+describe('DynamicSearchPanel - Variable Existence Warning', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    it('should show warning when variable does not exist in dashboard', async () => {
+        mockGetVariables.mockReturnValue([
+            { name: 'otherVar', type: 'query' },
+            { name: 'anotherVar', type: 'custom' },
+        ]);
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-variable-warning')).toBeInTheDocument();
+        });
+        expect(screen.getByTestId('dynamic-search-panel-variable-warning')).toHaveTextContent(
+            'Variable "testVar" not found in dashboard'
+        );
+    });
+
+    it('should not show warning when variable exists in dashboard', async () => {
+        mockGetVariables.mockReturnValue([
+            { name: 'testVar', type: 'query' },
+            { name: 'otherVar', type: 'custom' },
+        ]);
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-wrapper')).toBeInTheDocument();
+        });
+        expect(screen.queryByTestId('dynamic-search-panel-variable-warning')).not.toBeInTheDocument();
+    });
+
+    it('should not show warning when no variables configured', async () => {
+        mockGetVariables.mockReturnValue([]);
+
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, variableName: undefined }} />);
+
+        expect(screen.queryByTestId('dynamic-search-panel-variable-warning')).not.toBeInTheDocument();
+    });
+
+    it('should handle getTemplateSrv errors gracefully', async () => {
+        mockGetVariables.mockImplementation(() => {
+            throw new Error('Template service not available');
+        });
+
+        expect(() => render(<DynamicSearchPanel {...defaultProps} />)).not.toThrow();
     });
 });
