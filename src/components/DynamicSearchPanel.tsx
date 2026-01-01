@@ -3,8 +3,9 @@ import { PanelProps, SelectableValue, GrafanaTheme2 } from '@grafana/data';
 import { SimpleOptions } from 'types';
 import { css, keyframes } from '@emotion/css';
 import { useStyles2, Combobox, Icon } from '@grafana/ui';
-import { getDataSourceSrv, locationService } from '@grafana/runtime';
+import { getDataSourceSrv, locationService, getTemplateSrv } from '@grafana/runtime';
 import { buildQuery, applyRegexTransform, MIN_SEARCH_LENGTH, DEBOUNCE_DELAY } from '../utils';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface Props extends PanelProps<SimpleOptions> {}
 
@@ -87,14 +88,13 @@ const getStyles = (theme: GrafanaTheme2) => ({
     padding: ${theme.spacing(0.25, 1)};
     background: ${theme.colors.primary.transparent};
     border: 1px solid ${theme.colors.primary.border};
-    border-radius: ${theme.shape.radius.pill};
+    border-radius: ${theme.shape.radius.default};
     font-size: ${theme.typography.bodySmall.fontSize};
     color: ${theme.colors.primary.text};
     animation: ${fadeIn} 0.15s ease-out;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    max-width: 100%;
+    word-break: break-all;
+    text-align: right;
   `,
   configWarning: css`
     display: flex;
@@ -134,11 +134,25 @@ const getStyles = (theme: GrafanaTheme2) => ({
     color: ${theme.colors.text.disabled};
     font-style: italic;
   `,
+  warningBanner: css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing(0.5)};
+    padding: ${theme.spacing(0.5, 1)};
+    margin-bottom: ${theme.spacing(1)};
+    background: ${theme.colors.warning.transparent};
+    border: 1px solid ${theme.colors.warning.border};
+    border-radius: ${theme.shape.radius.default};
+    font-size: ${theme.typography.bodySmall.fontSize};
+    color: ${theme.colors.warning.text};
+    animation: ${fadeIn} 0.2s ease-out;
+  `,
 });
 
 interface ConfigStatus {
   configured: boolean;
   missing: string[];
+  warnings: string[];
 }
 
 const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }) => {
@@ -154,6 +168,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceResolveRef = useRef<((value: boolean) => void) | null>(null);
   const requestIdRef = useRef(0);
 
   useEffect(() => {
@@ -162,11 +177,17 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
+      if (debounceResolveRef.current) {
+        debounceResolveRef.current(false);
+        debounceResolveRef.current = null;
+      }
     };
   }, []);
 
   const configStatus = useMemo((): ConfigStatus => {
     const missing: string[] = [];
+    const warnings: string[] = [];
+
     if (!datasourceUid) {
       missing.push('Datasource');
     }
@@ -179,7 +200,21 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
     if (queryType === 'label_values' && !label) {
       missing.push('Label (required for Label Values query)');
     }
-    return { configured: missing.length === 0, missing };
+
+    if (variableName) {
+      try {
+        const templateSrv = getTemplateSrv();
+        const variables = templateSrv.getVariables();
+        const variableExists = variables.some((v) => v.name === variableName);
+        if (!variableExists) {
+          warnings.push(`Variable "${variableName}" not found in dashboard`);
+        }
+      } catch {
+        // Template service not available, skip check
+      }
+    }
+
+    return { configured: missing.length === 0, missing, warnings };
   }, [datasourceUid, metric, variableName, queryType, label]);
 
   const compiledRegex = useMemo(() => {
@@ -200,6 +235,10 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         clearTimeout(debounceTimeoutRef.current);
         debounceTimeoutRef.current = null;
       }
+      if (debounceResolveRef.current) {
+        debounceResolveRef.current(false);
+        debounceResolveRef.current = null;
+      }
 
       if (!datasourceUid || inputValue.length < minChars) {
         setIsLoading(false);
@@ -212,8 +251,10 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
       setIsLoading(true);
 
       const shouldProceed = await new Promise<boolean>((resolve) => {
+        debounceResolveRef.current = resolve;
         debounceTimeoutRef.current = setTimeout(() => {
           debounceTimeoutRef.current = null;
+          debounceResolveRef.current = null;
           resolve(true);
         }, DEBOUNCE_DELAY);
       });
@@ -348,6 +389,12 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
       aria-label="Dynamic search panel"
     >
       <div className={styles.searchContainer}>
+        {configStatus.warnings.length > 0 && (
+          <div className={styles.warningBanner} data-testid="dynamic-search-panel-variable-warning">
+            <Icon name="exclamation-triangle" size="sm" />
+            <span>{configStatus.warnings[0]}</span>
+          </div>
+        )}
         <div className={styles.selectContainer} data-testid="dynamic-search-panel-select-container">
           <Combobox
             options={loadOptions}
@@ -403,4 +450,10 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
   );
 };
 
-export const DynamicSearchPanel = memo(DynamicSearchPanelComponent);
+const MemoizedPanel = memo(DynamicSearchPanelComponent);
+
+export const DynamicSearchPanel: React.FC<Props> = (props) => (
+  <ErrorBoundary>
+    <MemoizedPanel {...props} />
+  </ErrorBoundary>
+);

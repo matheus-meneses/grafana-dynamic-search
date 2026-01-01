@@ -5,6 +5,7 @@ import { MIN_SEARCH_LENGTH } from './utils';
 
 import { DataSourcePickerEditor } from './components/DataSourcePickerEditor';
 import { RegexEditor } from './components/RegexEditor';
+import { QueryPreview } from './components/QueryPreview';
 
 export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPanelOptions((builder) => {
   return builder
@@ -14,6 +15,7 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
       name: 'Datasource *',
       description: 'Select the Prometheus datasource to query',
       editor: DataSourcePickerEditor,
+      category: ['Data Source'],
     })
     .addSelect({
       path: 'queryType',
@@ -27,25 +29,46 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
           { value: 'metrics', label: 'Metrics' },
         ],
       },
+      category: ['Query'],
     })
     .addTextInput({
       path: 'label',
       name: 'Label *',
-      description: 'Label name to extract values from (e.g., job, handler). Required for Label values query.',
+      description: 'Label name to extract values from. Required for Label values query.',
       defaultValue: '',
       showIf: (config) => config.queryType === 'label_values',
+      category: ['Query'],
+      settings: {
+        placeholder: 'e.g., job, instance, handler',
+      },
     })
     .addTextInput({
       path: 'metric',
       name: 'Metric *',
-      description: 'Metric name to filter (e.g., prometheus_http_requests_total)',
+      description: 'Metric name to filter',
       defaultValue: '',
+      category: ['Query'],
+      settings: {
+        placeholder: 'e.g., up, http_requests_total',
+      },
+    })
+    .addCustomEditor({
+      id: 'queryPreview',
+      path: 'queryPreview',
+      name: 'Query Preview',
+      description: 'The PromQL query that will be executed',
+      editor: QueryPreview,
+      category: ['Query'],
     })
     .addTextInput({
       path: 'variableName',
       name: 'Target Variable *',
       description: 'Dashboard variable to update when a value is selected (without $)',
       defaultValue: '',
+      category: ['Variable'],
+      settings: {
+        placeholder: 'e.g., selected_job',
+      },
     })
     .addNumberInput({
       path: 'minChars',
@@ -56,6 +79,7 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
         min: 0,
         integer: true,
       },
+      category: ['Display'],
     })
     .addNumberInput({
       path: 'maxResults',
@@ -66,6 +90,7 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
         min: 0,
         integer: true,
       },
+      category: ['Display'],
     })
     .addCustomEditor({
       id: 'regex',
@@ -73,5 +98,6 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
       name: 'Regex',
       description: 'Transform results using regex capture groups',
       editor: RegexEditor,
+      category: ['Transform'],
     });
 });

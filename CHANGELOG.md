@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-01-01
+
+### Added
+
+- Regex transformation with live preview in the editor
+- Visual feedback for regex validation (valid/invalid indicators)
+- Support for capture groups (first group used as output)
+- Graceful fallback to original value when regex doesn't match
+- Variable existence validation with warning banner when target variable not found
+- Error boundary for graceful error handling and recovery
+- Query preview in panel options showing the built PromQL query
+- Panel options organized into categories (Data Source, Query, Variable, Display, Transform)
+- Placeholder examples for Label, Metric, and Target Variable inputs
+- Comprehensive test coverage for maxResults, selected badge, cleanup, and variable validation
+
+### Fixed
+
+- Fixed debounce promise memory leak by properly resolving pending promises on cancel
+- Fixed description field not being preserved through regex transformation
+
+### Changed
+
+- Improved panel edit UI with grouped options and better discoverability
+- Enhanced code quality with error boundaries and proper cleanup
+
 ## [1.1.0] - 2025-12-29
 
 ### Added

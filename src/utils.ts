@@ -34,24 +34,31 @@ export const applyRegexTransform = (
   if (!regex) {
     const result = new Array<SelectableValue<string>>(len);
     for (let i = 0; i < len; i++) {
-      const text = values[i].text ?? '';
-      result[i] = { label: text, value: text };
+      const item = values[i];
+      const text = item.text ?? '';
+      result[i] = {
+        label: text,
+        value: text,
+        description: (item as SelectableValue<string>).description,
+      };
     }
     return result;
   }
 
   const result = new Array<SelectableValue<string>>(len);
   for (let i = 0; i < len; i++) {
-    const text = values[i].text ?? '';
+    const item = values[i];
+    const text = item.text ?? '';
+    const description = (item as SelectableValue<string>).description;
     try {
       const match = text.match(regex);
       if (match && match[1]) {
-        result[i] = { label: match[1], value: match[1] };
+        result[i] = { label: match[1], value: match[1], description };
       } else {
-        result[i] = { label: text, value: text };
+        result[i] = { label: text, value: text, description };
       }
     } catch {
-      result[i] = { label: text, value: text };
+      result[i] = { label: text, value: text, description };
     }
   }
   return result;

@@ -94,9 +94,9 @@ describe('utils', () => {
     it('should return original values if no regex provided', () => {
       const result = applyRegexTransform(values, null);
       expect(result).toEqual([
-        { label: 'node-01', value: 'node-01' },
-        { label: 'node-02', value: 'node-02' },
-        { label: 'other', value: 'other' },
+        { label: 'node-01', value: 'node-01', description: undefined },
+        { label: 'node-02', value: 'node-02', description: undefined },
+        { label: 'other', value: 'other', description: undefined },
       ]);
     });
 
@@ -104,9 +104,9 @@ describe('utils', () => {
       const regex = /node-(\d+)/;
       const result = applyRegexTransform(values, regex);
       expect(result).toEqual([
-        { label: '01', value: '01' },
-        { label: '02', value: '02' },
-        { label: 'other', value: 'other' },
+        { label: '01', value: '01', description: undefined },
+        { label: '02', value: '02', description: undefined },
+        { label: 'other', value: 'other', description: undefined },
       ]);
     });
 
@@ -114,9 +114,9 @@ describe('utils', () => {
       const regex = /nomatch/;
       const result = applyRegexTransform(values, regex);
       expect(result).toEqual([
-        { label: 'node-01', value: 'node-01' },
-        { label: 'node-02', value: 'node-02' },
-        { label: 'other', value: 'other' },
+        { label: 'node-01', value: 'node-01', description: undefined },
+        { label: 'node-02', value: 'node-02', description: undefined },
+        { label: 'other', value: 'other', description: undefined },
       ]);
     });
 
@@ -124,23 +124,42 @@ describe('utils', () => {
        const regex = /(.*)/;
        const result = applyRegexTransform(values, regex);
        expect(result).toEqual([
-         { label: 'node-01', value: 'node-01' },
-         { label: 'node-02', value: 'node-02' },
-         { label: 'other', value: 'other' },
+         { label: 'node-01', value: 'node-01', description: undefined },
+         { label: 'node-02', value: 'node-02', description: undefined },
+         { label: 'other', value: 'other', description: undefined },
        ]);
     });
 
     it('should handle undefined text gracefully', () => {
         const valuesWithUndefined = [{ text: undefined }] as unknown as MetricFindValue[];
         const result = applyRegexTransform(valuesWithUndefined, null);
-        expect(result).toEqual([{ label: '', value: '' }]);
+        expect(result).toEqual([{ label: '', value: '', description: undefined }]);
     });
 
     it('should handle undefined text with regex gracefully', () => {
         const valuesWithUndefined = [{ text: undefined }] as unknown as MetricFindValue[];
         const regex = /test/;
         const result = applyRegexTransform(valuesWithUndefined, regex);
-        expect(result).toEqual([{ label: '', value: '' }]);
+        expect(result).toEqual([{ label: '', value: '', description: undefined }]);
+    });
+
+    it('should preserve description field', () => {
+        const valuesWithDescription = [
+            { text: 'node-01', description: 'First node' },
+            { text: 'node-02' },
+        ] as unknown as MetricFindValue[];
+        const result = applyRegexTransform(valuesWithDescription, null);
+        expect(result[0].description).toBe('First node');
+        expect(result[1].description).toBeUndefined();
+    });
+
+    it('should preserve description field with regex transform', () => {
+        const valuesWithDescription = [
+            { text: 'node-01', description: 'First node' },
+        ] as unknown as MetricFindValue[];
+        const regex = /node-(\d+)/;
+        const result = applyRegexTransform(valuesWithDescription, regex);
+        expect(result[0]).toEqual({ label: '01', value: '01', description: 'First node' });
     });
   });
 
