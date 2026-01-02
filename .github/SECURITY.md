@@ -13,7 +13,7 @@
 If you discover a security vulnerability, please report it privately:
 
 1. **Do NOT open a public issue**
-2. Email: matheus.meneses@example.com
+2. Email: matheus.meneses@gmail.com
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce
@@ -31,4 +31,3 @@ This plugin:
 - Does not store credentials
 - Does not make external network requests (beyond configured datasources)
 - Runs entirely in the browser (frontend-only plugin)
-
