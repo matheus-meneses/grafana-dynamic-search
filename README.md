@@ -4,6 +4,10 @@
 [![Coverage](https://codecov.io/gh/matheus-meneses/grafana-dynamic-search/graph/badge.svg)](https://codecov.io/gh/matheus-meneses/grafana-dynamic-search)
 [![License](https://img.shields.io/github/license/matheus-meneses/grafana-dynamic-search)](LICENSE)
 [![Grafana](https://img.shields.io/badge/Grafana-11.6.0%2B-orange)](https://grafana.com)
+[![GitHub release](https://img.shields.io/github/v/release/matheus-meneses/grafana-dynamic-search)](https://github.com/matheus-meneses/grafana-dynamic-search/releases)
+[![GitHub issues](https://img.shields.io/github/issues/matheus-meneses/grafana-dynamic-search)](https://github.com/matheus-meneses/grafana-dynamic-search/issues)
+[![GitHub stars](https://img.shields.io/github/stars/matheus-meneses/grafana-dynamic-search)](https://github.com/matheus-meneses/grafana-dynamic-search/stargazers)
+[![Wiki](https://img.shields.io/badge/docs-Wiki-blue)](https://github.com/matheus-meneses/grafana-dynamic-search/wiki)
 
 A Grafana panel plugin that brings real-time, dynamic search capabilities to your dashboards. Query Prometheus directly from a search box with autocomplete suggestions and instantly update dashboard variables based on your selection.
 
@@ -111,9 +115,19 @@ Use regular expressions to extract specific parts of returned values. The plugin
 | `instance-(.*)` | `instance-01` | `01`      |
 | `.*-(.*)-.*`    | `prod-api-v1` | `api`     |
 
+## Roadmap
+
+See our [Roadmap in the Wiki](https://github.com/matheus-meneses/grafana-dynamic-search/wiki/Roadmap) for the full release timeline and planned features.
+
+For individual feature requests and bug reports, check the [open issues](https://github.com/matheus-meneses/grafana-dynamic-search/issues).
+
 ## Development
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for instructions on setting up the development environment.
+
+## Contributors
+
+Contributions of any kind welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Feedback
 

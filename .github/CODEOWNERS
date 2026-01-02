@@ -1,0 +1,7 @@
+# Default owner for everything
+* @matheus-meneses
+
+# Specific ownership (add as team grows)
+# /src/components/ @frontend-team
+# /tests/ @qa-team
+
