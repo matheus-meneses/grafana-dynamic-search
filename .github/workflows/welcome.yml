@@ -1,30 +1,36 @@
 name: Welcome New Contributors
 
 on:
-  pull_request_target:
-    types: [opened]
+  pull_request:
+    types:
+      - opened
   issues:
-    types: [opened]
+    types:
+      - opened
+
+permissions:
+  issues: write
+  pull-requests: write
 
 jobs:
-  welcome:
+  greeting:
+    name: Greet First-Time Contributors
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/first-interaction@v1
+      - uses: actions/first-interaction@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: |
-            Thanks for opening your first issue! 👋
+          issue_message: |
+            Thanks for opening your first issue!
 
             A maintainer will review it soon. In the meantime, please make sure you've:
             - Searched for existing issues
             - Provided all requested information
 
-          pr-message: |
-            Thanks for your first pull request! 🎉
+          pr_message: |
+            Thanks for your first pull request!
 
             A maintainer will review it soon. Please make sure:
             - All tests pass (`npm run test:ci`)
             - No lint errors (`npm run lint`)
             - CHANGELOG.md is updated (if applicable)
-
