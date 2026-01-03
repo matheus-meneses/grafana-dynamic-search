@@ -290,11 +290,11 @@ describe('DynamicSearchPanel', () => {
         expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'value1' }, true);
     });
 
-    it('handles null item selection (clearing)', async () => {
+    it('clears variable when selection is removed', async () => {
          render(<DynamicSearchPanel {...defaultProps} />);
          const clearBtn = screen.getByTestId('combobox-clear');
          fireEvent.click(clearBtn);
-         expect(mockLocationService.partial).not.toHaveBeenCalled();
+         expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': '' }, true);
     });
 
     it('applies regex transformation to results', async () => {
@@ -476,7 +476,7 @@ describe('DynamicSearchPanel - Selected Badge', () => {
         expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toHaveTextContent('selected-value');
     });
 
-    it('should hide selected badge after clearing', async () => {
+    it('should hide selected badge and clear variable after clearing', async () => {
         const mockMetricFindQuery = jest.fn().mockResolvedValue([
             { text: 'value', value: 'value' }
         ]);
@@ -498,11 +498,15 @@ describe('DynamicSearchPanel - Selected Badge', () => {
             expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toBeInTheDocument();
         });
 
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'value' }, true);
+        mockLocationService.partial.mockClear();
+
         fireEvent.click(screen.getByTestId('combobox-clear'));
 
         await waitFor(() => {
             expect(screen.queryByTestId('dynamic-search-panel-selected-badge')).not.toBeInTheDocument();
         });
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': '' }, true);
     });
 });
 

@@ -31,3 +31,5 @@ This plugin:
 - Does not store credentials
 - Does not make external network requests (beyond configured datasources)
 - Runs entirely in the browser (frontend-only plugin)
+
+
