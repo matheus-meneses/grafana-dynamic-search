@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [#30](https://github.com/matheus-meneses/grafana-dynamic-search/issues/30): Fixed variable not being cleared when selection is removed
 
+### Changed
+
+- Refactored query type and search mode strings to constants for better maintainability
+
 ### Dependencies
 
 - Bump sass from 1.63.2 to 1.97.1
