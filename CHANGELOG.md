@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [#30](https://github.com/matheus-meneses/grafana-dynamic-search/issues/30): Fixed variable not being cleared when selection is removed
 
+### Dependencies
+
+- Bump sass from 1.63.2 to 1.97.1
+- Bump copy-webpack-plugin from 11.0.0 to 13.0.1
+- Bump webpack-cli from 5.1.4 to 6.0.1
+- Bump @types/node from 20.19.27 to 25.0.3
+- Bump @stylistic/eslint-plugin in the eslint group
+- Bump actions/upload-artifact from 5 to 6
+
 ## [1.2.0] - 2026-01-01
 
 ### Added
