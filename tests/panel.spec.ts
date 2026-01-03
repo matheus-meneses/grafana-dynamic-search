@@ -234,7 +234,48 @@ test.describe('Dynamic Search Panel', () => {
     await expect(queryOptions.getTextInput('Label *')).toBeVisible();
   });
 
-  // Test case 8: Search with real data (Provisioned Dashboard)
+  // Test case 8: Verify custom placeholder text
+  test('should display custom placeholder text', async ({
+    dashboardPage,
+    readProvisionedDashboard,
+    readProvisionedDataSource,
+    page,
+  }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    await dashboardPage.goto({ uid: dashboard.uid });
+    const panelEditPage = await dashboardPage.addPanel();
+    await panelEditPage.setVisualization('Dynamic Search');
+
+    const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
+    
+    const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
+    const queryOptions = panelEditPage.getCustomOptions('Query');
+    const variableOptions = panelEditPage.getCustomOptions('Variable');
+    const displayOptions = panelEditPage.getCustomOptions('Display');
+
+    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
+    await dsSelect.click();
+    await page.getByRole('option', { name: ds.name }).click();
+
+    await queryOptions.getTextInput('Metric *').fill('up');
+    await variableOptions.getTextInput('Target Variable *').fill('test_var');
+    await queryOptions.getTextInput('Label *').fill('job');
+    await queryOptions.getTextInput('Label *').blur();
+
+    const searchWrapper = page.getByTestId('dynamic-search-panel-wrapper');
+    await expect(searchWrapper).toBeVisible();
+
+    const searchInput = searchWrapper.getByRole('combobox');
+    await expect(searchInput).toHaveAttribute('placeholder', 'Type to search...');
+
+    const placeholderInput = displayOptions.getTextInput('Placeholder');
+    await placeholderInput.fill('Search for a job...');
+    await placeholderInput.blur();
+
+    await expect(searchInput).toHaveAttribute('placeholder', 'Search for a job...');
+  });
+
+  // Test case 9: Search with real data (Provisioned Dashboard)
   test('should search and update variable with real data', async ({
     dashboardPage,
     readProvisionedDashboard,

@@ -70,6 +70,13 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
         placeholder: 'e.g., selected_job',
       },
     })
+    .addTextInput({
+      path: 'placeholder',
+      name: 'Placeholder',
+      description: 'Custom placeholder text for the search input',
+      defaultValue: 'Type to search...',
+      category: ['Display'],
+    })
     .addNumberInput({
       path: 'minChars',
       name: 'Min Characters',

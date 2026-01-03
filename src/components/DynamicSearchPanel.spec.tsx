@@ -598,3 +598,22 @@ describe('DynamicSearchPanel - Variable Existence Warning', () => {
         expect(() => render(<DynamicSearchPanel {...defaultProps} />)).not.toThrow();
     });
 });
+
+describe('DynamicSearchPanel - Placeholder', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
+    });
+
+    it('should use default placeholder when not configured', async () => {
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+        expect(input).toHaveAttribute('placeholder', 'Type to search...');
+    });
+
+    it('should use custom placeholder when configured', async () => {
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, placeholder: 'Search for a job...' }} />);
+        const input = screen.getByTestId('combobox-input');
+        expect(input).toHaveAttribute('placeholder', 'Search for a job...');
+    });
+});

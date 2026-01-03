@@ -9,6 +9,7 @@ export interface SimpleOptions {
     regex?: string;
     minChars?: number;
     maxResults?: number;
+    placeholder?: string;
 }
 
 /** Options required for building a query */

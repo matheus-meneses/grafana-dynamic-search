@@ -165,6 +165,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
   const { datasourceUid, queryType, label, metric, variableName, regex } = options;
   const minChars = options.minChars ?? MIN_SEARCH_LENGTH;
   const maxResults = options.maxResults ?? 0;
+  const placeholder = options.placeholder ?? 'Type to search...';
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -400,7 +401,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
             options={loadOptions}
             onChange={handleChange}
             value={comboboxValue}
-            placeholder="Type to search..."
+            placeholder={placeholder}
             isClearable
             id="dynamic-search-input"
           />
