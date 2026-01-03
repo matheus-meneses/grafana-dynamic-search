@@ -337,6 +337,9 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
     (item: SelectableValue<string> | null) => {
       if (!item) {
         setSelectedValue(null);
+        if (variableName) {
+          locationService.partial({ [`var-${variableName}`]: '' }, true);
+        }
         return;
       }
       const newValue: SelectableValue<string> = {
