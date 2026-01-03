@@ -119,6 +119,12 @@ describe('DynamicSearchPanel', () => {
         expect(await screen.findByTestId('dynamic-search-panel-config-warning')).toBeInTheDocument();
     });
 
+    it('renders config warning when metric is missing', async () => {
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, metric: '' }} />);
+        expect(await screen.findByTestId('dynamic-search-panel-config-warning')).toBeInTheDocument();
+        expect(screen.getByText('Metric')).toBeInTheDocument();
+    });
+
     it('renders search interface when correctly configured', async () => {
         render(<DynamicSearchPanel {...defaultProps} />);
         expect(await screen.findByTestId('dynamic-search-panel-wrapper')).toBeInTheDocument();
