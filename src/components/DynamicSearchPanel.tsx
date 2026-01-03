@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import { PanelProps, SelectableValue, GrafanaTheme2 } from '@grafana/data';
-import { SimpleOptions } from 'types';
+import { SimpleOptions, SEARCH_MODE } from 'types';
 import { css, keyframes } from '@emotion/css';
 import { useStyles2, Combobox, Icon } from '@grafana/ui';
 import { getDataSourceSrv, locationService, getTemplateSrv } from '@grafana/runtime';
@@ -166,7 +166,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
   const minChars = options.minChars ?? MIN_SEARCH_LENGTH;
   const maxResults = options.maxResults ?? 0;
   const placeholder = options.placeholder ?? 'Type to search...';
-  const searchMode = options.searchMode ?? 'contains';
+  const searchMode = options.searchMode ?? SEARCH_MODE.CONTAINS;
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -301,11 +301,11 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
               return false;
             }
             switch (searchMode) {
-              case 'starts_with':
+              case SEARCH_MODE.STARTS_WITH:
                 return text.startsWith(lowerInput);
-              case 'exact':
+              case SEARCH_MODE.EXACT:
                 return text === lowerInput;
-              case 'contains':
+              case SEARCH_MODE.CONTAINS:
               default:
                 return text.includes(lowerInput);
             }

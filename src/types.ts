@@ -1,6 +1,12 @@
 export type QueryType = 'label_values' | 'label_names' | 'metrics';
 
-export type SearchMode = 'contains' | 'starts_with' | 'exact';
+export const SEARCH_MODE = {
+    CONTAINS: 'contains',
+    STARTS_WITH: 'starts_with',
+    EXACT: 'exact',
+} as const;
+
+export type SearchMode = (typeof SEARCH_MODE)[keyof typeof SEARCH_MODE];
 
 export interface SimpleOptions {
     datasourceUid?: string;

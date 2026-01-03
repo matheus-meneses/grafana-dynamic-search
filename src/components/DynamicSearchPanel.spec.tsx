@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { DynamicSearchPanel } from './DynamicSearchPanel';
 import { PanelProps, LoadingState } from '@grafana/data';
-import { SimpleOptions } from '../types';
+import { SimpleOptions, SEARCH_MODE } from '../types';
 
 const mockGetDataSourceSrv = jest.fn();
 const mockLocationService = {
@@ -661,7 +661,7 @@ describe('DynamicSearchPanel - Search Mode', () => {
             metricFindQuery: mockMetricFindQuery,
         });
 
-        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, searchMode: 'starts_with' }} />);
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, searchMode: SEARCH_MODE.STARTS_WITH }} />);
         const input = screen.getByTestId('combobox-input');
         fireEvent.change(input, { target: { value: '/api' } });
 
@@ -682,7 +682,7 @@ describe('DynamicSearchPanel - Search Mode', () => {
             metricFindQuery: mockMetricFindQuery,
         });
 
-        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, searchMode: 'exact' }} />);
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, searchMode: SEARCH_MODE.EXACT }} />);
         const input = screen.getByTestId('combobox-input');
         fireEvent.change(input, { target: { value: '/api/users' } });
 

@@ -1,5 +1,5 @@
 import { PanelPlugin } from '@grafana/data';
-import { SimpleOptions } from './types';
+import { SimpleOptions, SEARCH_MODE } from './types';
 import { DynamicSearchPanel } from './components/DynamicSearchPanel';
 import { MIN_SEARCH_LENGTH } from './utils';
 
@@ -103,12 +103,12 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
       path: 'searchMode',
       name: 'Search Mode',
       description: 'How to match search input against results',
-      defaultValue: 'contains',
+      defaultValue: SEARCH_MODE.CONTAINS,
       settings: {
         options: [
-          { value: 'contains', label: 'Contains' },
-          { value: 'starts_with', label: 'Starts with' },
-          { value: 'exact', label: 'Exact match' },
+          { value: SEARCH_MODE.CONTAINS, label: 'Contains' },
+          { value: SEARCH_MODE.STARTS_WITH, label: 'Starts with' },
+          { value: SEARCH_MODE.EXACT, label: 'Exact match' },
         ],
       },
       category: ['Display'],
