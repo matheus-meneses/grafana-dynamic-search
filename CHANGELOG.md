@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- #24: Configurable placeholder text for the search input
+- [#24](https://github.com/matheus-meneses/grafana-dynamic-search/issues/24): Configurable placeholder text for the search input
 
 ### Fixed
 
-- #30: Fixed variable not being cleared when selection is removed
+- [#30](https://github.com/matheus-meneses/grafana-dynamic-search/issues/30): Fixed variable not being cleared when selection is removed
 
 ## [1.2.0] - 2026-01-01
 
