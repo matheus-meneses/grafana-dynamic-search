@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - [#24](https://github.com/matheus-meneses/grafana-dynamic-search/issues/24): Configurable placeholder text for the search input
+- [#29](https://github.com/matheus-meneses/grafana-dynamic-search/issues/29): Search mode selection (contains, starts with, exact match)
 
 ### Fixed
 

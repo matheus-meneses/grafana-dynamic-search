@@ -166,6 +166,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
   const minChars = options.minChars ?? MIN_SEARCH_LENGTH;
   const maxResults = options.maxResults ?? 0;
   const placeholder = options.placeholder ?? 'Type to search...';
+  const searchMode = options.searchMode ?? 'contains';
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -294,7 +295,21 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         let filteredResults = results;
         if (inputValue) {
           const lowerInput = inputValue.toLowerCase();
-          filteredResults = results.filter((r) => r.text?.toLowerCase().includes(lowerInput));
+          filteredResults = results.filter((r) => {
+            const text = r.text?.toLowerCase();
+            if (!text) {
+              return false;
+            }
+            switch (searchMode) {
+              case 'starts_with':
+                return text.startsWith(lowerInput);
+              case 'exact':
+                return text === lowerInput;
+              case 'contains':
+              default:
+                return text.includes(lowerInput);
+            }
+          });
         }
 
         setHasSearched(true);
@@ -331,7 +346,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         return [];
       }
     },
-    [datasourceUid, queryType, label, metric, compiledRegex, minChars, maxResults]
+    [datasourceUid, queryType, label, metric, compiledRegex, minChars, maxResults, searchMode]
   );
 
   const handleChange = useCallback(

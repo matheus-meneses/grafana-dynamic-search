@@ -99,6 +99,20 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
       },
       category: ['Display'],
     })
+    .addSelect({
+      path: 'searchMode',
+      name: 'Search Mode',
+      description: 'How to match search input against results',
+      defaultValue: 'contains',
+      settings: {
+        options: [
+          { value: 'contains', label: 'Contains' },
+          { value: 'starts_with', label: 'Starts with' },
+          { value: 'exact', label: 'Exact match' },
+        ],
+      },
+      category: ['Display'],
+    })
     .addCustomEditor({
       id: 'regex',
       path: 'regex',

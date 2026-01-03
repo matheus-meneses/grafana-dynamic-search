@@ -621,3 +621,75 @@ describe('DynamicSearchPanel - Placeholder', () => {
         expect(input).toHaveAttribute('placeholder', 'Search for a job...');
     });
 });
+
+describe('DynamicSearchPanel - Search Mode', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
+    });
+
+    it('should filter with "contains" mode by default', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: '/api/users', value: '/api/users' },
+            { text: 'legacy-api', value: 'legacy-api' },
+            { text: 'myapi', value: 'myapi' },
+            { text: 'other', value: 'other' },
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'api' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-/api/users')).toBeInTheDocument();
+            expect(screen.getByTestId('option-legacy-api')).toBeInTheDocument();
+            expect(screen.getByTestId('option-myapi')).toBeInTheDocument();
+        });
+        expect(screen.queryByTestId('option-other')).not.toBeInTheDocument();
+    });
+
+    it('should filter with "starts_with" mode', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: '/api/users', value: '/api/users' },
+            { text: '/api/orders', value: '/api/orders' },
+            { text: 'legacy-api', value: 'legacy-api' },
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, searchMode: 'starts_with' }} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: '/api' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-/api/users')).toBeInTheDocument();
+            expect(screen.getByTestId('option-/api/orders')).toBeInTheDocument();
+        });
+        expect(screen.queryByTestId('option-legacy-api')).not.toBeInTheDocument();
+    });
+
+    it('should filter with "exact" mode', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: '/api/users', value: '/api/users' },
+            { text: '/api/users/admin', value: '/api/users/admin' },
+            { text: '/api', value: '/api' },
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, searchMode: 'exact' }} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: '/api/users' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-/api/users')).toBeInTheDocument();
+        });
+        expect(screen.queryByTestId('option-/api/users/admin')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('option-/api')).not.toBeInTheDocument();
+    });
+});

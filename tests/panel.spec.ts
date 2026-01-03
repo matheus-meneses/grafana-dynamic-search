@@ -275,7 +275,28 @@ test.describe('Dynamic Search Panel', () => {
     await expect(searchInput).toHaveAttribute('placeholder', 'Search for a job...');
   });
 
-  // Test case 9: Search with real data (Provisioned Dashboard)
+  // Test case 9: Verify search mode selection
+  test('should display search mode options', async ({
+    dashboardPage,
+    readProvisionedDashboard,
+    page,
+  }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    await dashboardPage.goto({ uid: dashboard.uid });
+    const panelEditPage = await dashboardPage.addPanel();
+    await panelEditPage.setVisualization('Dynamic Search');
+
+    const displayOptions = panelEditPage.getCustomOptions('Display');
+    const searchModeSelect = displayOptions.getSelect('Search Mode');
+
+    await expect(searchModeSelect.locator).toBeVisible();
+
+    await searchModeSelect.selectOption('Starts with');
+    await searchModeSelect.selectOption('Exact match');
+    await searchModeSelect.selectOption('Contains');
+  });
+
+  // Test case 10: Search with real data (Provisioned Dashboard)
   test('should search and update variable with real data', async ({
     dashboardPage,
     readProvisionedDashboard,
