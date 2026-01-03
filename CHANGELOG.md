@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Next release]
 
+<<<<<<< HEAD
 ### Added
 
 - #24: Configurable placeholder text for the search input
+=======
+### Fixed
+
+- #30: Fixed variable not being cleared when selection is removed
+>>>>>>> b9695d7 (docs: update changelog for #30)
 
 ## [1.2.0] - 2026-01-01
 
