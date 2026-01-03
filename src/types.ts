@@ -1,4 +1,10 @@
-export type QueryType = 'label_values' | 'label_names' | 'metrics';
+export const QUERY_TYPE = {
+    LABEL_VALUES: 'label_values',
+    LABEL_NAMES: 'label_names',
+    METRICS: 'metrics',
+} as const;
+
+export type QueryType = (typeof QUERY_TYPE)[keyof typeof QUERY_TYPE];
 
 export const SEARCH_MODE = {
     CONTAINS: 'contains',

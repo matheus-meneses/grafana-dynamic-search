@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import { PanelProps, SelectableValue, GrafanaTheme2 } from '@grafana/data';
-import { SimpleOptions, SEARCH_MODE } from 'types';
+import { SimpleOptions, SEARCH_MODE, QUERY_TYPE } from 'types';
 import { css, keyframes } from '@emotion/css';
 import { useStyles2, Combobox, Icon } from '@grafana/ui';
 import { getDataSourceSrv, locationService, getTemplateSrv } from '@grafana/runtime';
@@ -199,7 +199,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
     if (!variableName) {
       missing.push('Target Variable');
     }
-    if (queryType === 'label_values' && !label) {
+    if (queryType === QUERY_TYPE.LABEL_VALUES && !label) {
       missing.push('Label (required for Label Values query)');
     }
 

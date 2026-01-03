@@ -1,5 +1,5 @@
 import { PanelPlugin } from '@grafana/data';
-import { SimpleOptions, SEARCH_MODE } from './types';
+import { SimpleOptions, SEARCH_MODE, QUERY_TYPE } from './types';
 import { DynamicSearchPanel } from './components/DynamicSearchPanel';
 import { MIN_SEARCH_LENGTH } from './utils';
 
@@ -21,12 +21,12 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
       path: 'queryType',
       name: 'Query type',
       description: 'Type of query to execute',
-      defaultValue: 'label_values',
+      defaultValue: QUERY_TYPE.LABEL_VALUES,
       settings: {
         options: [
-          { value: 'label_values', label: 'Label values' },
-          { value: 'label_names', label: 'Label names' },
-          { value: 'metrics', label: 'Metrics' },
+          { value: QUERY_TYPE.LABEL_VALUES, label: 'Label values' },
+          { value: QUERY_TYPE.LABEL_NAMES, label: 'Label names' },
+          { value: QUERY_TYPE.METRICS, label: 'Metrics' },
         ],
       },
       category: ['Query'],
@@ -36,7 +36,7 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
       name: 'Label *',
       description: 'Label name to extract values from. Required for Label values query.',
       defaultValue: '',
-      showIf: (config) => config.queryType === 'label_values',
+      showIf: (config) => config.queryType === QUERY_TYPE.LABEL_VALUES,
       category: ['Query'],
       settings: {
         placeholder: 'e.g., job, instance, handler',
