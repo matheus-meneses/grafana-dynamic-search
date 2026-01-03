@@ -1,5 +1,5 @@
 import { MetricFindValue, SelectableValue } from '@grafana/data';
-import { QueryOptions } from './types';
+import { QueryOptions, QUERY_TYPE } from './types';
 
 export const MIN_SEARCH_LENGTH = 3;
 export const DEBOUNCE_DELAY = 350;
@@ -8,7 +8,7 @@ export const buildQuery = (options: QueryOptions): string => {
   const { queryType, label, metric } = options;
 
   switch (queryType) {
-    case 'label_values':
+    case QUERY_TYPE.LABEL_VALUES:
       if (metric && label) {
         return `label_values(${metric}, ${label})`;
       }
@@ -16,9 +16,9 @@ export const buildQuery = (options: QueryOptions): string => {
         return `label_values(${label})`;
       }
       return '';
-    case 'label_names':
+    case QUERY_TYPE.LABEL_NAMES:
       return metric ? `label_names(${metric})` : 'label_names()';
-    case 'metrics':
+    case QUERY_TYPE.METRICS:
       return metric ? `metrics(${metric})` : 'metrics(.*)';
     default:
       return '';

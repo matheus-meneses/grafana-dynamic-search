@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import { PanelProps, SelectableValue, GrafanaTheme2 } from '@grafana/data';
-import { SimpleOptions } from 'types';
+import { SimpleOptions, SEARCH_MODE, QUERY_TYPE } from 'types';
 import { css, keyframes } from '@emotion/css';
 import { useStyles2, Combobox, Icon } from '@grafana/ui';
 import { getDataSourceSrv, locationService, getTemplateSrv } from '@grafana/runtime';
@@ -166,6 +166,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
   const minChars = options.minChars ?? MIN_SEARCH_LENGTH;
   const maxResults = options.maxResults ?? 0;
   const placeholder = options.placeholder ?? 'Type to search...';
+  const searchMode = options.searchMode ?? SEARCH_MODE.CONTAINS;
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -198,7 +199,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
     if (!variableName) {
       missing.push('Target Variable');
     }
-    if (queryType === 'label_values' && !label) {
+    if (queryType === QUERY_TYPE.LABEL_VALUES && !label) {
       missing.push('Label (required for Label Values query)');
     }
 
@@ -294,7 +295,21 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         let filteredResults = results;
         if (inputValue) {
           const lowerInput = inputValue.toLowerCase();
-          filteredResults = results.filter((r) => r.text?.toLowerCase().includes(lowerInput));
+          filteredResults = results.filter((r) => {
+            const text = r.text?.toLowerCase();
+            if (!text) {
+              return false;
+            }
+            switch (searchMode) {
+              case SEARCH_MODE.STARTS_WITH:
+                return text.startsWith(lowerInput);
+              case SEARCH_MODE.EXACT:
+                return text === lowerInput;
+              case SEARCH_MODE.CONTAINS:
+              default:
+                return text.includes(lowerInput);
+            }
+          });
         }
 
         setHasSearched(true);
@@ -331,7 +346,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         return [];
       }
     },
-    [datasourceUid, queryType, label, metric, compiledRegex, minChars, maxResults]
+    [datasourceUid, queryType, label, metric, compiledRegex, minChars, maxResults, searchMode]
   );
 
   const handleChange = useCallback(

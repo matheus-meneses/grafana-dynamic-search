@@ -1,5 +1,5 @@
 import { PanelPlugin } from '@grafana/data';
-import { SimpleOptions } from './types';
+import { SimpleOptions, SEARCH_MODE, QUERY_TYPE, QueryType, SearchMode } from './types';
 import { DynamicSearchPanel } from './components/DynamicSearchPanel';
 import { MIN_SEARCH_LENGTH } from './utils';
 
@@ -21,12 +21,12 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
       path: 'queryType',
       name: 'Query type',
       description: 'Type of query to execute',
-      defaultValue: 'label_values',
+      defaultValue: QUERY_TYPE.LABEL_VALUES as QueryType,
       settings: {
         options: [
-          { value: 'label_values', label: 'Label values' },
-          { value: 'label_names', label: 'Label names' },
-          { value: 'metrics', label: 'Metrics' },
+          { value: QUERY_TYPE.LABEL_VALUES as QueryType, label: 'Label values' },
+          { value: QUERY_TYPE.LABEL_NAMES as QueryType, label: 'Label names' },
+          { value: QUERY_TYPE.METRICS as QueryType, label: 'Metrics' },
         ],
       },
       category: ['Query'],
@@ -36,7 +36,7 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
       name: 'Label *',
       description: 'Label name to extract values from. Required for Label values query.',
       defaultValue: '',
-      showIf: (config) => config.queryType === 'label_values',
+      showIf: (config) => config.queryType === QUERY_TYPE.LABEL_VALUES,
       category: ['Query'],
       settings: {
         placeholder: 'e.g., job, instance, handler',
@@ -96,6 +96,20 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
       settings: {
         min: 0,
         integer: true,
+      },
+      category: ['Display'],
+    })
+    .addSelect({
+      path: 'searchMode',
+      name: 'Search Mode',
+      description: 'How to match search input against results',
+      defaultValue: SEARCH_MODE.CONTAINS as SearchMode,
+      settings: {
+        options: [
+          { value: SEARCH_MODE.CONTAINS as SearchMode, label: 'Contains' },
+          { value: SEARCH_MODE.STARTS_WITH as SearchMode, label: 'Starts with' },
+          { value: SEARCH_MODE.EXACT as SearchMode, label: 'Exact match' },
+        ],
       },
       category: ['Display'],
     })
