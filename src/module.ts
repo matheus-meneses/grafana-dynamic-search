@@ -1,5 +1,5 @@
 import { PanelPlugin } from '@grafana/data';
-import { SimpleOptions, SEARCH_MODE, QUERY_TYPE } from './types';
+import { SimpleOptions, SEARCH_MODE, QUERY_TYPE, QueryType, SearchMode } from './types';
 import { DynamicSearchPanel } from './components/DynamicSearchPanel';
 import { MIN_SEARCH_LENGTH } from './utils';
 
@@ -21,12 +21,12 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
       path: 'queryType',
       name: 'Query type',
       description: 'Type of query to execute',
-      defaultValue: QUERY_TYPE.LABEL_VALUES,
+      defaultValue: QUERY_TYPE.LABEL_VALUES as QueryType,
       settings: {
         options: [
-          { value: QUERY_TYPE.LABEL_VALUES, label: 'Label values' },
-          { value: QUERY_TYPE.LABEL_NAMES, label: 'Label names' },
-          { value: QUERY_TYPE.METRICS, label: 'Metrics' },
+          { value: QUERY_TYPE.LABEL_VALUES as QueryType, label: 'Label values' },
+          { value: QUERY_TYPE.LABEL_NAMES as QueryType, label: 'Label names' },
+          { value: QUERY_TYPE.METRICS as QueryType, label: 'Metrics' },
         ],
       },
       category: ['Query'],
@@ -103,12 +103,12 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel).setPane
       path: 'searchMode',
       name: 'Search Mode',
       description: 'How to match search input against results',
-      defaultValue: SEARCH_MODE.CONTAINS,
+      defaultValue: SEARCH_MODE.CONTAINS as SearchMode,
       settings: {
         options: [
-          { value: SEARCH_MODE.CONTAINS, label: 'Contains' },
-          { value: SEARCH_MODE.STARTS_WITH, label: 'Starts with' },
-          { value: SEARCH_MODE.EXACT, label: 'Exact match' },
+          { value: SEARCH_MODE.CONTAINS as SearchMode, label: 'Contains' },
+          { value: SEARCH_MODE.STARTS_WITH as SearchMode, label: 'Starts with' },
+          { value: SEARCH_MODE.EXACT as SearchMode, label: 'Exact match' },
         ],
       },
       category: ['Display'],
