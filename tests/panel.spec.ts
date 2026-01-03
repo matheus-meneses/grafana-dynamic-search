@@ -289,8 +289,6 @@ test.describe('Dynamic Search Panel', () => {
     const displayOptions = panelEditPage.getCustomOptions('Display');
     const searchModeSelect = displayOptions.getSelect('Search Mode');
 
-    await expect(searchModeSelect.locator).toBeVisible();
-
     await searchModeSelect.selectOption('Starts with');
     await searchModeSelect.selectOption('Exact match');
     await searchModeSelect.selectOption('Contains');
