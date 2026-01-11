@@ -4,6 +4,21 @@ import { DynamicSearchPanel } from './DynamicSearchPanel';
 import { PanelProps, LoadingState } from '@grafana/data';
 import { SimpleOptions, SEARCH_MODE } from '../types';
 
+const originalError = console.error;
+beforeAll(() => {
+  console.error = (...args: any[]) => {
+    if (args[0]?.includes?.('not wrapped in act') || 
+        (typeof args[0] === 'string' && args[0].includes('not wrapped in act'))) {
+      return;
+    }
+    originalError.call(console, ...args);
+  };
+});
+
+afterAll(() => {
+  console.error = originalError;
+});
+
 const mockGetDataSourceSrv = jest.fn();
 const mockLocationService = {
   partial: jest.fn(),
@@ -23,17 +38,24 @@ jest.mock('@grafana/runtime', () => ({
   }),
 }));
 
-// Mock Grafana UI components to simplify testing
 jest.mock('@grafana/ui', () => ({
   ...jest.requireActual('@grafana/ui'),
   Combobox: ({ onChange, value, options, placeholder, isClearable }: any) => {
     const [opts, setOpts] = React.useState<any[]>([]);
 
     const handleInput = async (e: any) => {
+        const inputValue = e.target.value;
         if (typeof options === 'function') {
-            const res = await options(e.target.value);
+            const res = await options(inputValue);
             setOpts(Array.isArray(res) ? res : []);
         }
+    };
+
+    const handleClear = () => {
+        if (typeof options === 'function') {
+            options('');
+        }
+        onChange(null);
     };
 
     return (
@@ -43,7 +65,7 @@ jest.mock('@grafana/ui', () => ({
             placeholder={placeholder}
             onChange={handleInput} 
         />
-        {isClearable && <button data-testid="combobox-clear" onClick={() => onChange(null)}>Clear</button>}
+        {isClearable && <button data-testid="combobox-clear" onClick={handleClear}>Clear</button>}
         <div data-testid="combobox-options">
             {opts.map((o: any) => (
                 <div 
@@ -55,7 +77,7 @@ jest.mock('@grafana/ui', () => ({
                 </div>
             ))}
         </div>
-        <div data-testid="combobox-value">{value ? value.value : ''}</div>
+        <div data-testid="combobox-value">{value || ''}</div>
       </div>
     );
   },
@@ -296,11 +318,38 @@ describe('DynamicSearchPanel', () => {
         expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'value1' }, true);
     });
 
-    it('clears variable when selection is removed', async () => {
+    it('clears variable when selection is removed via clear button', async () => {
          render(<DynamicSearchPanel {...defaultProps} />);
          const clearBtn = screen.getByTestId('combobox-clear');
          fireEvent.click(clearBtn);
          expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': '' }, true);
+    });
+
+    it('clears variable when input is cleared via backspace after typing', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'value1', value: 'value1' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+        
+        fireEvent.change(input, { target: { value: 'val' } });
+        await waitFor(() => {
+            expect(screen.getByTestId('option-value1')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('option-value1'));
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'value1' }, true);
+        mockLocationService.partial.mockClear();
+
+        fireEvent.change(input, { target: { value: 'new' } });
+        fireEvent.change(input, { target: { value: '' } });
+        await waitFor(() => {
+            expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': '' }, true);
+        });
     });
 
     it('applies regex transformation to results', async () => {
@@ -697,5 +746,211 @@ describe('DynamicSearchPanel - Search Mode', () => {
         });
         expect(screen.queryByTestId('option-/api/users/admin')).not.toBeInTheDocument();
         expect(screen.queryByTestId('option-/api')).not.toBeInTheDocument();
+    });
+});
+
+describe('DynamicSearchPanel - Input Clearing Behavior', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
+    });
+
+    it('clears variable when user backspaces input to empty after selection and typing', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'selected-item', value: 'selected-item' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+
+        fireEvent.change(input, { target: { value: 'selected' } });
+        await waitFor(() => {
+            expect(screen.getByTestId('option-selected-item')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('option-selected-item'));
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'selected-item' }, true);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toBeInTheDocument();
+        });
+
+        mockLocationService.partial.mockClear();
+
+        fireEvent.change(input, { target: { value: 'new-search' } });
+        fireEvent.change(input, { target: { value: '' } });
+
+        await waitFor(() => {
+            expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': '' }, true);
+        });
+
+        await waitFor(() => {
+            expect(screen.queryByTestId('dynamic-search-panel-selected-badge')).not.toBeInTheDocument();
+        });
+    });
+
+    it('does not update variable while typing (only on selection)', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'option1', value: 'option1' },
+            { text: 'option2', value: 'option2' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+
+        fireEvent.change(input, { target: { value: 'opt' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-option1')).toBeInTheDocument();
+        });
+
+        expect(mockLocationService.partial).not.toHaveBeenCalled();
+
+        fireEvent.change(input, { target: { value: 'opti' } });
+        fireEvent.change(input, { target: { value: 'optio' } });
+
+        expect(mockLocationService.partial).not.toHaveBeenCalled();
+    });
+
+    it('updates variable only when clicking on an option', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'first-option', value: 'first-option' },
+            { text: 'second-option', value: 'second-option' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+
+        fireEvent.change(input, { target: { value: 'option' } });
+        await waitFor(() => {
+            expect(screen.getByTestId('option-first-option')).toBeInTheDocument();
+            expect(screen.getByTestId('option-second-option')).toBeInTheDocument();
+        });
+
+        expect(mockLocationService.partial).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByTestId('option-first-option'));
+
+        expect(mockLocationService.partial).toHaveBeenCalledTimes(1);
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'first-option' }, true);
+    });
+
+    it('clears variable when clicking X button', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'test-value', value: 'test-value' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+
+        fireEvent.change(input, { target: { value: 'test' } });
+        await waitFor(() => {
+            expect(screen.getByTestId('option-test-value')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('option-test-value'));
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'test-value' }, true);
+        mockLocationService.partial.mockClear();
+
+        fireEvent.click(screen.getByTestId('combobox-clear'));
+
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': '' }, true);
+    });
+
+    it('does not clear variable when backspacing if no selection exists', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+
+        fireEvent.change(input, { target: { value: 'test' } });
+        await waitFor(() => {}, { timeout: 100 });
+
+        expect(mockLocationService.partial).not.toHaveBeenCalled();
+
+        fireEvent.change(input, { target: { value: '' } });
+        await waitFor(() => {}, { timeout: 100 });
+
+        expect(mockLocationService.partial).not.toHaveBeenCalled();
+    });
+
+    it('does not clear variable when clicking on input after selection (initial focus)', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'my-value', value: 'my-value' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+
+        fireEvent.change(input, { target: { value: 'my-v' } });
+        await waitFor(() => {
+            expect(screen.getByTestId('option-my-value')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('option-my-value'));
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'my-value' }, true);
+        
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toBeInTheDocument();
+        });
+        
+        mockLocationService.partial.mockClear();
+
+        fireEvent.change(input, { target: { value: '' } });
+        await waitFor(() => {}, { timeout: 100 });
+        
+        expect(mockLocationService.partial).not.toHaveBeenCalled();
+        expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toBeInTheDocument();
+    });
+
+    it('allows selecting a new value after clearing', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'value-a', value: 'value-a' },
+            { text: 'value-b', value: 'value-b' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+
+        fireEvent.change(input, { target: { value: 'value' } });
+        await waitFor(() => {
+            expect(screen.getByTestId('option-value-a')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('option-value-a'));
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'value-a' }, true);
+
+        fireEvent.click(screen.getByTestId('combobox-clear'));
+
+        mockLocationService.partial.mockClear();
+
+        fireEvent.change(input, { target: { value: 'value' } });
+        await waitFor(() => {
+            expect(screen.getByTestId('option-value-b')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('option-value-b'));
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'value-b' }, true);
     });
 });
