@@ -155,18 +155,36 @@ interface ConfigStatus {
   warnings: string[];
 }
 
+const getInitialVariableValue = (variableName: string | undefined): SelectableValue<string> | null => {
+  if (!variableName) {
+    return null;
+  }
+  try {
+    const templateSrv = getTemplateSrv();
+    const currentValue = templateSrv.replace(`$${variableName}`);
+    if (currentValue && currentValue !== `$${variableName}`) {
+      return { label: currentValue, value: currentValue };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
 const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }) => {
   const styles = useStyles2(getStyles);
-  const [selectedValue, setSelectedValue] = useState<SelectableValue<string> | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [lastResultCount, setLastResultCount] = useState<number | null>(null);
-
   const { datasourceUid, queryType, label, metric, variableName, regex } = options;
   const minChars = options.minChars ?? MIN_SEARCH_LENGTH;
   const maxResults = options.maxResults ?? 0;
   const placeholder = options.placeholder ?? 'Type to search...';
   const searchMode = options.searchMode ?? SEARCH_MODE.CONTAINS;
+
+  const [selectedValue, setSelectedValue] = useState<SelectableValue<string> | null>(() =>
+    getInitialVariableValue(variableName)
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [lastResultCount, setLastResultCount] = useState<number | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
