@@ -172,6 +172,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debounceResolveRef = useRef<((value: boolean) => void) | null>(null);
   const requestIdRef = useRef(0);
+  const lastInputValueRef = useRef<string>('');
 
   useEffect(() => {
     return () => {
@@ -242,6 +243,18 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         debounceResolveRef.current = null;
       }
 
+      const wasTyping = lastInputValueRef.current.length > 0;
+      const isNowEmpty = inputValue === '';
+      
+      if (wasTyping && isNowEmpty && selectedValue) {
+        setSelectedValue(null);
+        if (variableName) {
+          locationService.partial({ [`var-${variableName}`]: '' }, true);
+        }
+      }
+      
+      lastInputValueRef.current = inputValue;
+
       if (!datasourceUid || inputValue.length < minChars) {
         setIsLoading(false);
         setHasSearched(false);
@@ -250,7 +263,6 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
       }
 
       const currentRequestId = ++requestIdRef.current;
-      setIsLoading(true);
 
       const shouldProceed = await new Promise<boolean>((resolve) => {
         debounceResolveRef.current = resolve;
@@ -265,6 +277,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         return [];
       }
 
+      setIsLoading(true);
       abortControllerRef.current = new AbortController();
       const { regex: compiledRegexPattern } = compiledRegex;
 
@@ -346,12 +359,13 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         return [];
       }
     },
-    [datasourceUid, queryType, label, metric, compiledRegex, minChars, maxResults, searchMode]
+    [datasourceUid, queryType, label, metric, compiledRegex, minChars, maxResults, searchMode, selectedValue, variableName]
   );
 
   const handleChange = useCallback(
-    (item: SelectableValue<string> | null) => {
-      if (!item) {
+    (option: { label?: string; value: string; description?: string } | null) => {
+      lastInputValueRef.current = '';
+      if (!option) {
         setSelectedValue(null);
         if (variableName) {
           locationService.partial({ [`var-${variableName}`]: '' }, true);
@@ -359,9 +373,9 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         return;
       }
       const newValue: SelectableValue<string> = {
-        label: item.label,
-        value: item.value,
-        description: item.description,
+        label: option.label,
+        value: option.value,
+        description: option.description,
       };
       setSelectedValue(newValue);
       if (variableName && newValue.value) {
@@ -395,10 +409,6 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
     );
   }
 
-  const comboboxValue = selectedValue
-    ? { label: selectedValue.label || selectedValue.value || '', value: selectedValue.value || '' }
-    : null;
-
   return (
     <div
       className={styles.wrapper}
@@ -418,7 +428,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
           <Combobox
             options={loadOptions}
             onChange={handleChange}
-            value={comboboxValue}
+            value={selectedValue?.value ?? null}
             placeholder={placeholder}
             isClearable
             id="dynamic-search-input"

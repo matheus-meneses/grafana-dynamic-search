@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - [#30](https://github.com/matheus-meneses/grafana-dynamic-search/issues/30): Fixed variable not being cleared when selection is removed
+- [#52](https://github.com/matheus-meneses/grafana-dynamic-search/issues/52): Fixed backspace clearing not updating dashboard variable
 
 ### Changed
 
@@ -22,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 
+- Bump @emotion/css from 11.10.6 to 11.13.5
+- Bump @grafana/plugin-e2e from 3.1.0 to 3.1.1
+- Bump glob from 10.5.0 to 13.0.0
+- Bump prettier from 2.8.8 to 3.7.4
+- Bump sass-loader from 13.3.1 to 16.0.6
 - Bump sass from 1.63.2 to 1.97.1
 - Bump copy-webpack-plugin from 11.0.0 to 13.0.1
 - Bump webpack-cli from 5.1.4 to 6.0.1
