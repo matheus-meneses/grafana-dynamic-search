@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - [#30](https://github.com/matheus-meneses/grafana-dynamic-search/issues/30): Fixed variable not being cleared when selection is removed
 - [#52](https://github.com/matheus-meneses/grafana-dynamic-search/issues/52): Fixed backspace clearing not updating dashboard variable
+- [#53](https://github.com/matheus-meneses/grafana-dynamic-search/issues/53): Panel now syncs with variable value from URL query parameters on load
 
 ### Changed
 

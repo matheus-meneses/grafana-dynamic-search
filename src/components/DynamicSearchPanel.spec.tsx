@@ -24,6 +24,7 @@ const mockLocationService = {
   partial: jest.fn(),
 };
 const mockGetVariables = jest.fn();
+const mockReplace = jest.fn();
 
 jest.mock('@grafana/runtime', () => ({
   ...jest.requireActual('@grafana/runtime'),
@@ -35,6 +36,7 @@ jest.mock('@grafana/runtime', () => ({
   },
   getTemplateSrv: () => ({
     getVariables: () => mockGetVariables(),
+    replace: (input: string) => mockReplace(input),
   }),
 }));
 
@@ -122,6 +124,7 @@ describe('DynamicSearchPanel', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
+        mockReplace.mockImplementation((input: string) => input);
     });
 
     it('renders config warning when datasource is missing', async () => {
@@ -952,5 +955,116 @@ describe('DynamicSearchPanel - Input Clearing Behavior', () => {
 
         fireEvent.click(screen.getByTestId('option-value-b'));
         expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'value-b' }, true);
+    });
+});
+
+describe('DynamicSearchPanel - URL Variable Sync', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
+    });
+
+    it('should pre-populate selected value from URL variable on mount', async () => {
+        mockReplace.mockImplementation((input: string) => {
+            if (input === '$testVar') {
+                return '/api/users';
+            }
+            return input;
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toBeInTheDocument();
+        });
+        expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toHaveTextContent('/api/users');
+    });
+
+    it('should not pre-populate when variable has no value', async () => {
+        mockReplace.mockImplementation((input: string) => input);
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-wrapper')).toBeInTheDocument();
+        });
+        expect(screen.queryByTestId('dynamic-search-panel-selected-badge')).not.toBeInTheDocument();
+    });
+
+    it('should not pre-populate when variable name is not configured', async () => {
+        mockReplace.mockImplementation((input: string) => 'some-value');
+
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, variableName: undefined }} />);
+
+        expect(screen.queryByTestId('dynamic-search-panel-selected-badge')).not.toBeInTheDocument();
+    });
+
+    it('should allow clearing pre-populated value via clear button', async () => {
+        mockReplace.mockImplementation((input: string) => {
+            if (input === '$testVar') {
+                return 'pre-filled-value';
+            }
+            return input;
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toBeInTheDocument();
+        });
+        expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toHaveTextContent('pre-filled-value');
+
+        fireEvent.click(screen.getByTestId('combobox-clear'));
+
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': '' }, true);
+        await waitFor(() => {
+            expect(screen.queryByTestId('dynamic-search-panel-selected-badge')).not.toBeInTheDocument();
+        });
+    });
+
+    it('should allow selecting new value after clearing pre-populated value', async () => {
+        mockReplace.mockImplementation((input: string) => {
+            if (input === '$testVar') {
+                return 'initial-value';
+            }
+            return input;
+        });
+
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'new-selection', value: 'new-selection' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toHaveTextContent('initial-value');
+        });
+
+        fireEvent.click(screen.getByTestId('combobox-clear'));
+        mockLocationService.partial.mockClear();
+
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'new' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-new-selection')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('option-new-selection'));
+
+        expect(mockLocationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'new-selection' }, true);
+    });
+
+    it('should handle getTemplateSrv.replace throwing error gracefully', async () => {
+        mockReplace.mockImplementation(() => {
+            throw new Error('Template service error');
+        });
+
+        expect(() => render(<DynamicSearchPanel {...defaultProps} />)).not.toThrow();
+        expect(screen.getByTestId('dynamic-search-panel-wrapper')).toBeInTheDocument();
+        expect(screen.queryByTestId('dynamic-search-panel-selected-badge')).not.toBeInTheDocument();
     });
 });
