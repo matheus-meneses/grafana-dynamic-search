@@ -1,26 +1,58 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { StandardEditorProps } from '@grafana/data';
-import { DataSourcePicker } from '@grafana/runtime';
+import { Combobox, ComboboxOption } from '@grafana/ui';
+import { getDataSourceSrv, getTemplateSrv } from '@grafana/runtime';
 
 interface Props extends StandardEditorProps<string> {}
 
 const DataSourcePickerEditorComponent: React.FC<Props> = ({ value, onChange }) => {
+  const options = useMemo(() => {
+    const result: Array<ComboboxOption<string>> = [];
+
+    const dsSrv = getDataSourceSrv();
+    const promDatasources = dsSrv.getList({ type: 'prometheus' });
+
+    const prometheusVariables = getTemplateSrv()
+      .getVariables()
+      .filter((v) => {
+        if (v.type !== 'datasource') {
+          return false;
+        }
+        const dsVar = v as { query?: string };
+        return dsVar.query === 'prometheus';
+      })
+      .map((v) => ({
+        label: `$${v.name}`,
+        value: `$${v.name}`,
+        description: 'Dashboard variable',
+      }));
+    result.push(...prometheusVariables);
+
+    const datasources = promDatasources.map((ds) => ({
+      label: ds.name,
+      value: ds.uid ?? '',
+      description: ds.isDefault ? 'Default' : undefined,
+    }));
+    result.push(...datasources);
+
+    return result;
+  }, []);
+
   const handleChange = useCallback(
-    (ds: { uid?: string }) => {
-      if (ds.uid) {
-        onChange(ds.uid);
+    (option: ComboboxOption<string> | null) => {
+      if (option?.value) {
+        onChange(option.value);
       }
     },
     [onChange]
   );
 
   return (
-    <DataSourcePicker
+    <Combobox
+      options={options}
+      value={value}
       onChange={handleChange}
-      current={value}
-      filter={(ds) => ds.type === 'prometheus'}
-      noDefault
-      variables
+      placeholder="Select data source"
     />
   );
 };
