@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- [#21](https://github.com/matheus-meneses/grafana-dynamic-search/issues/21): Match highlighting in dropdown results
+
 ### Dependencies
 
 - Bump @swc/core from 1.15.8 to 1.15.10
