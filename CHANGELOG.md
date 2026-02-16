@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - [#21](https://github.com/matheus-meneses/grafana-dynamic-search/issues/21): Match highlighting in dropdown results
+- [#75](https://github.com/matheus-meneses/grafana-dynamic-search/issues/75): Support dashboard variables for datasource selection
 
 ### Dependencies
 

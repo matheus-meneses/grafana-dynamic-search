@@ -20,6 +20,7 @@ const DataSourcePickerEditorComponent: React.FC<Props> = ({ value, onChange }) =
       current={value}
       filter={(ds) => ds.type === 'prometheus'}
       noDefault
+      variables
     />
   );
 };

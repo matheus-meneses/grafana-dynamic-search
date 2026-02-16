@@ -172,6 +172,25 @@ const getInitialVariableValue = (variableName: string | undefined): SelectableVa
   return null;
 };
 
+const resolveDatasourceUid = (uid: string | undefined): string | undefined => {
+  if (!uid) {
+    return undefined;
+  }
+  if (uid.startsWith('$')) {
+    try {
+      const templateSrv = getTemplateSrv();
+      const resolved = templateSrv.replace(uid);
+      if (resolved && resolved !== uid) {
+        return resolved;
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  return uid;
+};
+
 const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }) => {
   const styles = useStyles2(getStyles);
   const { datasourceUid, queryType, label, metric, variableName, regex } = options;
@@ -179,6 +198,8 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
   const maxResults = options.maxResults ?? 0;
   const placeholder = options.placeholder ?? 'Type to search...';
   const searchMode = options.searchMode ?? SEARCH_MODE.CONTAINS;
+
+  const resolvedDatasourceUid = useMemo(() => resolveDatasourceUid(datasourceUid), [datasourceUid]);
 
   const [selectedValue, setSelectedValue] = useState<SelectableValue<string> | null>(() =>
     getInitialVariableValue(variableName)
@@ -212,6 +233,8 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
 
     if (!datasourceUid) {
       missing.push('Datasource');
+    } else if (datasourceUid.startsWith('$') && !resolvedDatasourceUid) {
+      warnings.push(`Datasource variable "${datasourceUid}" could not be resolved`);
     }
     if (!metric) {
       missing.push('Metric');
@@ -237,7 +260,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
     }
 
     return { configured: missing.length === 0, missing, warnings };
-  }, [datasourceUid, metric, variableName, queryType, label]);
+  }, [datasourceUid, resolvedDatasourceUid, metric, variableName, queryType, label]);
 
   const compiledRegex = useMemo(() => {
     if (!regex) {
@@ -274,7 +297,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
       
       lastInputValueRef.current = inputValue;
 
-      if (!datasourceUid || inputValue.length < minChars) {
+      if (!resolvedDatasourceUid || inputValue.length < minChars) {
         setIsLoading(false);
         setHasSearched(false);
         setLastResultCount(null);
@@ -301,7 +324,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
       const { regex: compiledRegexPattern } = compiledRegex;
 
       try {
-        const ds = await getDataSourceSrv().get(datasourceUid);
+        const ds = await getDataSourceSrv().get(resolvedDatasourceUid);
 
         if (currentRequestId !== requestIdRef.current || abortControllerRef.current?.signal.aborted) {
           return [];
@@ -378,7 +401,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         return [];
       }
     },
-    [datasourceUid, queryType, label, metric, compiledRegex, minChars, maxResults, searchMode, selectedValue, variableName]
+    [resolvedDatasourceUid, queryType, label, metric, compiledRegex, minChars, maxResults, searchMode, selectedValue, variableName]
   );
 
   const handleChange = useCallback(
