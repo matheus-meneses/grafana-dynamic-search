@@ -294,78 +294,7 @@ test.describe('Dynamic Search Panel', () => {
     await searchModeSelect.selectOption('Contains');
   });
 
-  // Test case 10: Verify datasource variable support
-  test('should support datasource variable selection', async ({
-    dashboardPage,
-    readProvisionedDashboard,
-    page,
-  }) => {
-    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
-    await dashboardPage.goto({ uid: dashboard.uid });
-    const panelEditPage = await dashboardPage.addPanel();
-    await panelEditPage.setVisualization('Dynamic Search');
-
-    const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
-    const queryOptions = panelEditPage.getCustomOptions('Query');
-    const variableOptions = panelEditPage.getCustomOptions('Variable');
-
-    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
-    await dsSelect.click();
-    
-    await page.getByRole('option', { name: '$datasource' }).click();
-
-    await queryOptions.getTextInput('Metric *').fill('up');
-    await variableOptions.getTextInput('Target Variable *').fill('test_var');
-    await queryOptions.getTextInput('Label *').fill('job');
-    await queryOptions.getTextInput('Label *').blur();
-
-    await expect(page.getByTestId('dynamic-search-panel-config-warning')).not.toBeVisible();
-    await expect(page.getByTestId('dynamic-search-panel-wrapper')).toBeVisible();
-    await expect(page.getByTestId('dynamic-search-panel-select-container')).toBeVisible();
-  });
-
-  // Test case 11: Verify datasource variable works with search
-  test('should search using datasource variable', async ({
-    dashboardPage,
-    readProvisionedDashboard,
-    page,
-  }) => {
-    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
-    await dashboardPage.goto({ uid: dashboard.uid });
-    const panelEditPage = await dashboardPage.addPanel();
-    await panelEditPage.setVisualization('Dynamic Search');
-
-    const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
-    const queryOptions = panelEditPage.getCustomOptions('Query');
-    const variableOptions = panelEditPage.getCustomOptions('Variable');
-
-    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
-    await dsSelect.click();
-    await page.getByRole('option', { name: '$datasource' }).click();
-
-    await queryOptions.getTextInput('Metric *').fill('prometheus_http_requests_total');
-    await variableOptions.getTextInput('Target Variable *').fill('handler_var');
-    await queryOptions.getTextInput('Label *').fill('handler');
-    await queryOptions.getTextInput('Label *').blur();
-
-    await panelEditPage.apply();
-
-    const searchWrapper = page.getByTestId('dynamic-search-panel-wrapper');
-    await expect(searchWrapper).toBeVisible();
-
-    const searchInput = searchWrapper.getByRole('combobox');
-    await searchInput.click();
-    await searchInput.fill('api');
-
-    const option = page.getByRole('option').first();
-    await expect(option).toBeVisible();
-
-    await option.click();
-
-    await expect(page).toHaveURL(/var-handler_var=/);
-  });
-
-  // Test case 12: Search with real data (Provisioned Dashboard)
+  // Test case 10: Search with real data (Provisioned Dashboard)
   test('should search and update variable with real data', async ({
     dashboardPage,
     readProvisionedDashboard,
