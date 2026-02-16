@@ -29,7 +29,7 @@
     "@swc/helpers": "^0.5.0",
     "@swc/jest": "^0.2.26",
     "@testing-library/jest-dom": "6.9.1",
-    "@testing-library/react": "^16.3.1",
+    "@testing-library/react": "^16.3.2",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.2.3",
     "@types/react": "^18.3.0",
