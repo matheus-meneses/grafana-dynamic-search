@@ -6,6 +6,7 @@ import { useStyles2, Combobox, Icon } from '@grafana/ui';
 import { getDataSourceSrv, locationService, getTemplateSrv } from '@grafana/runtime';
 import { buildQuery, applyRegexTransform, MIN_SEARCH_LENGTH, DEBOUNCE_DELAY } from '../utils';
 import { ErrorBoundary } from './ErrorBoundary';
+import { HighlightedText } from './HighlightedText';
 
 interface Props extends PanelProps<SimpleOptions> {}
 
@@ -362,7 +363,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         return transformed
           .filter((r): r is typeof r & { value: string } => typeof r.value === 'string' && r.value !== '')
           .map((r) => ({
-            label: r.label || r.value,
+            label: (<HighlightedText text={r.label || r.value} highlight={inputValue} />) as unknown as string,
             value: r.value,
             description: r.description,
           }));
