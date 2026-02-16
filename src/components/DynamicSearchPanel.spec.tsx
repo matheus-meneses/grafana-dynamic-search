@@ -1068,3 +1068,90 @@ describe('DynamicSearchPanel - URL Variable Sync', () => {
         expect(screen.queryByTestId('dynamic-search-panel-selected-badge')).not.toBeInTheDocument();
     });
 });
+
+describe('DynamicSearchPanel - Datasource Variable Support', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
+    });
+
+    it('should resolve datasource variable and fetch options', async () => {
+        mockReplace.mockImplementation((input: string) => {
+            if (input === '$datasource') {
+                return 'resolved-prometheus-uid';
+            }
+            return input;
+        });
+
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'result1', value: 'result1' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, datasourceUid: '$datasource' }} />);
+        
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'result' } });
+
+        await waitFor(() => {
+            expect(mockMetricFindQuery).toHaveBeenCalled();
+        });
+
+        expect(screen.getByTestId('option-result1')).toBeInTheDocument();
+    });
+
+    it('should work with static datasource uid', async () => {
+        mockReplace.mockImplementation((input: string) => input);
+
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'value1', value: 'value1' }
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'value' } });
+
+        await waitFor(() => {
+            expect(mockMetricFindQuery).toHaveBeenCalled();
+        });
+
+        expect(screen.getByTestId('option-value1')).toBeInTheDocument();
+    });
+
+    it('should show warning when datasource variable cannot be resolved', async () => {
+        mockReplace.mockImplementation((input: string) => input);
+
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, datasourceUid: '$unresolved' }} />);
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-variable-warning')).toBeInTheDocument();
+        });
+        expect(screen.getByTestId('dynamic-search-panel-variable-warning')).toHaveTextContent(
+            'Datasource variable "$unresolved" could not be resolved'
+        );
+    });
+
+    it('should not fetch options when datasource variable is unresolved', async () => {
+        mockReplace.mockImplementation((input: string) => input);
+
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, datasourceUid: '$unresolved' }} />);
+        
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'test' } });
+
+        await waitFor(() => {}, { timeout: 100 });
+
+        expect(mockMetricFindQuery).not.toHaveBeenCalled();
+    });
+});
