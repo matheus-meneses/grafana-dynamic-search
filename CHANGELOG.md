@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Dependencies
+
+- Bump @swc/core from 1.15.8 to 1.15.10
+- Bump @playwright/test from 1.57.0 to 1.58.0
+- Bump @types/node from 25.0.3 to 25.0.10
+- Bump @testing-library/react from 16.3.1 to 16.3.2
+- Bump prettier from 3.7.4 to 3.8.0
+- Bump swc-loader from 0.2.6 to 0.2.7
+- Bump @grafana/plugin-e2e from 3.1.1 to 3.1.4
+- Bump sass from 1.97.1 to 1.97.2
+- Bump the eslint group with 5 updates
+- Bump actions/setup-node from 6.1.0 to 6.2.0
+- Bump grafana/plugin-actions/e2e-version from v1.1.2 to v1.2.1
+
 ## [1.3.0] - 2026-01-11
 
 ### Added
