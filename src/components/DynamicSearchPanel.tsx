@@ -1,10 +1,11 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
 import { PanelProps, SelectableValue, GrafanaTheme2 } from '@grafana/data';
-import { SimpleOptions, SEARCH_MODE, QUERY_TYPE } from 'types';
+import { SimpleOptions, SEARCH_MODE, QUERY_TYPE, QueryConfig } from 'types';
 import { css, keyframes } from '@emotion/css';
-import { useStyles2, Combobox, Icon } from '@grafana/ui';
+import { useStyles2, Combobox, Icon, Alert } from '@grafana/ui';
 import { getDataSourceSrv, locationService, getTemplateSrv } from '@grafana/runtime';
-import { buildQuery, applyRegexTransform, MIN_SEARCH_LENGTH, DEBOUNCE_DELAY } from '../utils';
+import { buildQuery, applyRegexTransform, deduplicateQueries, deduplicateResults, MIN_SEARCH_LENGTH, DEBOUNCE_DELAY } from '../utils';
+import { DEFAULT_QUERY_TIMEOUT } from '../types';
 import { ErrorBoundary } from './ErrorBoundary';
 import { HighlightedText } from './HighlightedText';
 
@@ -191,13 +192,26 @@ const resolveDatasourceUid = (uid: string | undefined): string | undefined => {
   return uid;
 };
 
+/** Validates that a query config has the minimum required fields */
+const isQueryValid = (q: QueryConfig): boolean => {
+  if (!q.metric) {
+    return false;
+  }
+  if (q.queryType === QUERY_TYPE.LABEL_VALUES && !q.label) {
+    return false;
+  }
+  return true;
+};
+
 const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }) => {
   const styles = useStyles2(getStyles);
-  const { datasourceUid, queryType, label, metric, variableName, regex } = options;
+  const { datasourceUid, variableName, regex } = options;
+  const queries: QueryConfig[] = useMemo(() => options.queries ?? [], [options.queries]);
   const minChars = options.minChars ?? MIN_SEARCH_LENGTH;
   const maxResults = options.maxResults ?? 0;
   const placeholder = options.placeholder ?? 'Type to search...';
   const searchMode = options.searchMode ?? SEARCH_MODE.CONTAINS;
+  const queryTimeout = options.queryTimeout ?? DEFAULT_QUERY_TIMEOUT;
 
   const resolvedDatasourceUid = useMemo(() => resolveDatasourceUid(datasourceUid), [datasourceUid]);
 
@@ -207,6 +221,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [lastResultCount, setLastResultCount] = useState<number | null>(null);
+  const [failedQueries, setFailedQueries] = useState<string[]>([]);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -236,14 +251,18 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
     } else if (datasourceUid.startsWith('$') && !resolvedDatasourceUid) {
       warnings.push(`Datasource variable "${datasourceUid}" could not be resolved`);
     }
-    if (!metric) {
-      missing.push('Metric');
+
+    if (queries.length === 0) {
+      missing.push('At least one query');
+    } else {
+      const hasValidQuery = queries.some(isQueryValid);
+      if (!hasValidQuery) {
+        missing.push('At least one valid query (check metric and label fields)');
+      }
     }
+
     if (!variableName) {
       missing.push('Target Variable');
-    }
-    if (queryType === QUERY_TYPE.LABEL_VALUES && !label) {
-      missing.push('Label (required for Label Values query)');
     }
 
     if (variableName) {
@@ -260,7 +279,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
     }
 
     return { configured: missing.length === 0, missing, warnings };
-  }, [datasourceUid, resolvedDatasourceUid, metric, variableName, queryType, label]);
+  }, [datasourceUid, resolvedDatasourceUid, queries, variableName]);
 
   const compiledRegex = useMemo(() => {
     if (!regex) {
@@ -335,22 +354,66 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
           return [];
         }
 
-        const query = buildQuery({ queryType, label, metric });
-        if (!query) {
+        // Deduplicate queries to avoid redundant API calls
+        const validQueries = queries.filter(isQueryValid);
+        const uniqueQueries = deduplicateQueries(validQueries);
+
+        // Build query strings and filter out empty ones
+        const queryStrings = uniqueQueries
+          .map((q) => buildQuery({ queryType: q.queryType, label: q.label, metric: q.metric }))
+          .filter((q) => q !== '');
+
+        if (queryStrings.length === 0) {
           setIsLoading(false);
           return [];
         }
 
-        const results = await ds.metricFindQuery(query, {});
+        // Execute all queries in parallel with optional timeout
+        const queryPromises = uniqueQueries.map((queryConfig) => {
+          const queryStr = buildQuery({ queryType: queryConfig.queryType, label: queryConfig.label, metric: queryConfig.metric });
+          if (!queryStr) {
+            return Promise.resolve({ results: [], failedName: null });
+          }
+
+          const queryName = queryConfig.name || `Query ${queries.indexOf(queryConfig) + 1}`;
+          const queryPromise = ds.metricFindQuery!(queryStr, {});
+          const timeout = queryConfig.queryTimeout ?? DEFAULT_QUERY_TIMEOUT;
+          
+          if (timeout > 0) {
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error(`Query timed out after ${timeout}s`)), timeout * 1000)
+            );
+            return Promise.race([queryPromise, timeoutPromise])
+              .then((results) => ({ results, failedName: null }))
+              .catch((err) => {
+                console.warn(`Query "${queryName}" (${queryStr}) failed:`, err.message);
+                return { results: [], failedName: queryName };
+              });
+          }
+          return queryPromise
+            .then((results) => ({ results, failedName: null }))
+            .catch((err) => {
+              console.warn(`Query "${queryName}" (${queryStr}) failed:`, err.message);
+              return { results: [], failedName: queryName };
+            });
+        });
+
+        const allSettled = await Promise.all(queryPromises);
 
         if (currentRequestId !== requestIdRef.current || abortControllerRef.current?.signal.aborted) {
           return [];
         }
 
-        let filteredResults = results;
+        const failedNames = allSettled.map(r => r.failedName).filter((name): name is string => name !== null);
+        setFailedQueries(failedNames);
+
+        // Merge and deduplicate results from all queries
+        const mergedResults = deduplicateResults(allSettled.flatMap(r => r.results));
+
+        let filteredResults = mergedResults;
         if (inputValue) {
           const lowerInput = inputValue.toLowerCase();
-          filteredResults = results.filter((r) => {
+          filteredResults = mergedResults.filter((r) => {
             const text = r.text?.toLowerCase();
             if (!text) {
               return false;
@@ -401,7 +464,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
         return [];
       }
     },
-    [resolvedDatasourceUid, queryType, label, metric, compiledRegex, minChars, maxResults, searchMode, selectedValue, variableName]
+    [resolvedDatasourceUid, queries, compiledRegex, minChars, maxResults, searchMode, selectedValue, variableName]
   );
 
   const handleChange = useCallback(
@@ -516,6 +579,25 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
             </div>
           )}
         </div>
+
+        <div className={styles.searchDetails}>
+          {isLoading && <span>Searching...</span>}
+          {hasSearched && !isLoading && lastResultCount !== null && (
+            <span>
+              {lastResultCount === maxResults && maxResults > 0
+                ? `Showing first ${maxResults} results`
+                : `Found ${lastResultCount} result${lastResultCount === 1 ? '' : 's'}`}
+            </span>
+          )}
+        </div>
+        
+        {failedQueries.length > 0 && (
+          <div style={{ marginTop: '8px' }}>
+            <Alert title="Data may be missing" severity="warning">
+              The following queries failed to execute: {failedQueries.join(', ')}. Check your data source or query configuration.
+            </Alert>
+          </div>
+        )}
       </div>
     </div>
   );

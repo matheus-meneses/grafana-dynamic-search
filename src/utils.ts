@@ -1,8 +1,15 @@
 import { MetricFindValue, SelectableValue } from '@grafana/data';
-import { QueryOptions, QUERY_TYPE } from './types';
+import { QueryOptions, QueryConfig, QUERY_TYPE } from './types';
 
 export const MIN_SEARCH_LENGTH = 3;
 export const DEBOUNCE_DELAY = 350;
+
+let queryIdCounter = 0;
+
+/** Generate a unique ID for a query configuration */
+export const generateQueryId = (): string => {
+  return `q-${Date.now()}-${++queryIdCounter}`;
+};
 
 export const buildQuery = (options: QueryOptions): string => {
   const { queryType, label, metric } = options;
@@ -23,6 +30,44 @@ export const buildQuery = (options: QueryOptions): string => {
     default:
       return '';
   }
+};
+
+/**
+ * Remove duplicate query configurations to avoid redundant API calls.
+ * Two queries are considered duplicates if they have the same (queryType, label, metric) tuple.
+ */
+export const deduplicateQueries = (queries: QueryConfig[]): QueryConfig[] => {
+  const seen = new Set<string>();
+  const result: QueryConfig[] = [];
+
+  for (const query of queries) {
+    const key = `${query.queryType}|${query.label ?? ''}|${query.metric}|${query.queryTimeout ?? ''}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(query);
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Deduplicate MetricFindValue results by their text field.
+ * Used after merging results from multiple parallel queries.
+ */
+export const deduplicateResults = (results: MetricFindValue[]): MetricFindValue[] => {
+  const seen = new Set<string>();
+  const deduplicated: MetricFindValue[] = [];
+
+  for (const result of results) {
+    const text = result.text ?? '';
+    if (!seen.has(text)) {
+      seen.add(text);
+      deduplicated.push(result);
+    }
+  }
+
+  return deduplicated;
 };
 
 export const applyRegexTransform = (

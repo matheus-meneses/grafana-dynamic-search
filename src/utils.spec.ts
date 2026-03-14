@@ -1,5 +1,5 @@
-import { buildQuery, applyRegexTransform } from './utils';
-import { QueryOptions, QueryType } from './types';
+import { buildQuery, applyRegexTransform, deduplicateQueries, deduplicateResults, generateQueryId } from './utils';
+import { QueryOptions, QueryType, QueryConfig } from './types';
 import { MetricFindValue } from '@grafana/data';
 
 const defaultOptions: QueryOptions = {
@@ -160,6 +160,120 @@ describe('utils', () => {
         const regex = /node-(\d+)/;
         const result = applyRegexTransform(valuesWithDescription, regex);
         expect(result[0]).toEqual({ label: '01', value: '01', description: 'First node' });
+    });
+  });
+
+  describe('deduplicateQueries', () => {
+    it('should remove queries with identical (queryType, label, metric)', () => {
+      const queries: QueryConfig[] = [
+        { id: '1', queryType: 'label_values', label: 'job', metric: 'up' },
+        { id: '2', queryType: 'label_values', label: 'job', metric: 'up' },
+        { id: '3', queryType: 'label_values', label: 'instance', metric: 'up' },
+      ];
+      const result = deduplicateQueries(queries);
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('1');
+      expect(result[1].id).toBe('3');
+    });
+
+    it('should keep queries with different query types', () => {
+      const queries: QueryConfig[] = [
+        { id: '1', queryType: 'label_values', label: 'job', metric: 'up' },
+        { id: '2', queryType: 'label_names', metric: 'up' },
+      ];
+      const result = deduplicateQueries(queries);
+      expect(result).toHaveLength(2);
+    });
+
+    it('should keep queries with different metrics', () => {
+      const queries: QueryConfig[] = [
+        { id: '1', queryType: 'label_values', label: 'job', metric: 'up' },
+        { id: '2', queryType: 'label_values', label: 'job', metric: 'http_requests_total' },
+      ];
+      const result = deduplicateQueries(queries);
+      expect(result).toHaveLength(2);
+    });
+
+    it('should return empty array for empty input', () => {
+      expect(deduplicateQueries([])).toEqual([]);
+    });
+
+    it('should handle single query', () => {
+      const queries: QueryConfig[] = [
+        { id: '1', queryType: 'label_values', label: 'job', metric: 'up' },
+      ];
+      const result = deduplicateQueries(queries);
+      expect(result).toHaveLength(1);
+    });
+
+    it('should treat undefined and empty label differently', () => {
+      const queries: QueryConfig[] = [
+        { id: '1', queryType: 'label_names', metric: 'up' },
+        { id: '2', queryType: 'label_names', label: '', metric: 'up' },
+      ];
+      const result = deduplicateQueries(queries);
+      expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('deduplicateResults', () => {
+    it('should remove duplicate results by text', () => {
+      const results: MetricFindValue[] = [
+        { text: 'value1' },
+        { text: 'value2' },
+        { text: 'value1' },
+        { text: 'value3' },
+      ];
+      const deduplicated = deduplicateResults(results);
+      expect(deduplicated).toHaveLength(3);
+      expect(deduplicated.map(r => r.text)).toEqual(['value1', 'value2', 'value3']);
+    });
+
+    it('should handle empty input', () => {
+      expect(deduplicateResults([])).toEqual([]);
+    });
+
+    it('should handle all unique results', () => {
+      const results: MetricFindValue[] = [
+        { text: 'a' },
+        { text: 'b' },
+        { text: 'c' },
+      ];
+      const deduplicated = deduplicateResults(results);
+      expect(deduplicated).toHaveLength(3);
+    });
+
+    it('should handle all duplicate results', () => {
+      const results: MetricFindValue[] = [
+        { text: 'same' },
+        { text: 'same' },
+        { text: 'same' },
+      ];
+      const deduplicated = deduplicateResults(results);
+      expect(deduplicated).toHaveLength(1);
+    });
+
+    it('should handle undefined text', () => {
+      const results = [
+        { text: undefined },
+        { text: undefined },
+      ] as unknown as MetricFindValue[];
+      const deduplicated = deduplicateResults(results);
+      expect(deduplicated).toHaveLength(1);
+    });
+  });
+
+  describe('generateQueryId', () => {
+    it('should return a string', () => {
+      expect(typeof generateQueryId()).toBe('string');
+    });
+
+    it('should return unique IDs', () => {
+      const ids = new Set<string>();
+      for (let i = 0; i < 100; i++) {
+        ids.add(generateQueryId());
+      }
+      expect(ids.size).toBe(100);
     });
   });
 

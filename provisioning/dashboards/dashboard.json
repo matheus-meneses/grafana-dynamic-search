@@ -39,12 +39,25 @@
       "id": 1,
       "options": {
         "datasourceUid": "prometheus-uid",
-        "label": "handler",
         "maxResults": 0,
-        "metric": "prometheus_http_requests_total",
         "minChars": 3,
-        "queryType": "label_values",
-        "variableName": "api"
+        "variableName": "api",
+        "queries": [
+          {
+            "id": "q1",
+            "name": "HTTP Handlers",
+            "queryType": "label_values",
+            "label": "handler",
+            "metric": "prometheus_http_requests_total"
+          },
+          {
+            "id": "q2",
+            "name": "HTTP Method",
+            "queryType": "label_values",
+            "label": "method",
+            "metric": "prometheus_http_requests_total"
+          }
+        ]
       },
       "pluginVersion": "1.0.0",
       "targets": [],
