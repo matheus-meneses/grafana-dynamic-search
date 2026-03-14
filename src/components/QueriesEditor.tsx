@@ -1,6 +1,14 @@
 import React, { useCallback, useMemo, memo } from 'react';
 import { StandardEditorProps, GrafanaTheme2 } from '@grafana/data';
-import { useStyles2, Button, Select, Input, Icon, IconButton } from '@grafana/ui';
+import {
+  IconButton,
+  Input,
+  useStyles2,
+  Icon,
+  Combobox,
+  ComboboxOption,
+  Button,
+} from '@grafana/ui';
 import { css } from '@emotion/css';
 import { SimpleOptions, QueryConfig, QUERY_TYPE, QueryType } from '../types';
 import { generateQueryId, buildQuery } from '../utils';
@@ -188,13 +196,12 @@ const QueriesEditorComponent: React.FC<Props> = ({ value, onChange }) => {
 
             <div className={styles.fieldRow}>
               <label className={styles.fieldLabel}>Query type</label>
-              <Select
+              <Combobox
                 options={queryTypeOptions}
                 value={query.queryType}
-                onChange={(v) =>
-                  updateQuery(index, { queryType: v.value as QueryType })
+                onChange={(v: ComboboxOption<string> | null) =>
+                  updateQuery(index, { queryType: v?.value as QueryType })
                 }
-                menuShouldPortal
               />
             </div>
 

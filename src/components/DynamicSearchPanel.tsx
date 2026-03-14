@@ -1,15 +1,16 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect, memo } from 'react';
-import { PanelProps, SelectableValue, GrafanaTheme2 } from '@grafana/data';
-import { SimpleOptions, SEARCH_MODE, QUERY_TYPE, QueryConfig } from 'types';
+import React, { useMemo, memo } from 'react';
+import { Icon, useStyles2, Combobox } from '@grafana/ui';
+import { SimpleOptions, QueryConfig } from '../types';
 import { css, keyframes } from '@emotion/css';
-import { useStyles2, Combobox, Icon, Alert } from '@grafana/ui';
-import { getDataSourceSrv, locationService, getTemplateSrv } from '@grafana/runtime';
-import { buildQuery, applyRegexTransform, deduplicateQueries, deduplicateResults, MIN_SEARCH_LENGTH, DEBOUNCE_DELAY } from '../utils';
-import { DEFAULT_QUERY_TIMEOUT } from '../types';
+import { GrafanaTheme2, PanelProps } from '@grafana/data';
+import { getTemplateSrv } from '@grafana/runtime';
+import { useDynamicSearch } from '../hooks/useDynamicSearch';
+import { FailedQueriesWarning } from './FailedQueriesWarning';
+import { SearchResultsList } from './SearchResultsList';
 import { ErrorBoundary } from './ErrorBoundary';
-import { HighlightedText } from './HighlightedText';
+import { resolveDatasourceUid, isQueryValid, MIN_SEARCH_LENGTH } from '../utils';
 
-interface Props extends PanelProps<SimpleOptions> {}
+type Props = PanelProps<SimpleOptions>;
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(-4px); }
@@ -149,6 +150,13 @@ const getStyles = (theme: GrafanaTheme2) => ({
     color: ${theme.colors.warning.text};
     animation: ${fadeIn} 0.2s ease-out;
   `,
+  searchDetails: css`
+    display: flex;
+    justify-content: space-between;
+    font-size: ${theme.typography.bodySmall.fontSize};
+    color: ${theme.colors.text.secondary};
+    margin-top: ${theme.spacing(0.5)};
+  `,
 });
 
 interface ConfigStatus {
@@ -157,90 +165,26 @@ interface ConfigStatus {
   warnings: string[];
 }
 
-const getInitialVariableValue = (variableName: string | undefined): SelectableValue<string> | null => {
-  if (!variableName) {
-    return null;
-  }
-  try {
-    const templateSrv = getTemplateSrv();
-    const currentValue = templateSrv.replace(`$${variableName}`);
-    if (currentValue && currentValue !== `$${variableName}`) {
-      return { label: currentValue, value: currentValue };
-    }
-  } catch {
-    return null;
-  }
-  return null;
-};
-
-const resolveDatasourceUid = (uid: string | undefined): string | undefined => {
-  if (!uid) {
-    return undefined;
-  }
-  if (uid.startsWith('$')) {
-    try {
-      const templateSrv = getTemplateSrv();
-      const resolved = templateSrv.replace(uid);
-      if (resolved && resolved !== uid) {
-        return resolved;
-      }
-      return undefined;
-    } catch {
-      return undefined;
-    }
-  }
-  return uid;
-};
-
-/** Validates that a query config has the minimum required fields */
-const isQueryValid = (q: QueryConfig): boolean => {
-  if (!q.metric) {
-    return false;
-  }
-  if (q.queryType === QUERY_TYPE.LABEL_VALUES && !q.label) {
-    return false;
-  }
-  return true;
-};
-
-const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }) => {
+const DynamicSearchPanelComponent = ({ options, width, height }: Props) => {
   const styles = useStyles2(getStyles);
-  const { datasourceUid, variableName, regex } = options;
+  const { datasourceUid, variableName } = options;
   const queries: QueryConfig[] = useMemo(() => options.queries ?? [], [options.queries]);
   const minChars = options.minChars ?? MIN_SEARCH_LENGTH;
   const maxResults = options.maxResults ?? 0;
   const placeholder = options.placeholder ?? 'Type to search...';
-  const searchMode = options.searchMode ?? SEARCH_MODE.CONTAINS;
-  const queryTimeout = options.queryTimeout ?? DEFAULT_QUERY_TIMEOUT;
 
   const resolvedDatasourceUid = useMemo(() => resolveDatasourceUid(datasourceUid), [datasourceUid]);
 
-  const [selectedValue, setSelectedValue] = useState<SelectableValue<string> | null>(() =>
-    getInitialVariableValue(variableName)
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [lastResultCount, setLastResultCount] = useState<number | null>(null);
-  const [failedQueries, setFailedQueries] = useState<string[]>([]);
-
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const debounceResolveRef = useRef<((value: boolean) => void) | null>(null);
-  const requestIdRef = useRef(0);
-  const lastInputValueRef = useRef<string>('');
-
-  useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort();
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-      if (debounceResolveRef.current) {
-        debounceResolveRef.current(false);
-        debounceResolveRef.current = null;
-      }
-    };
-  }, []);
+  const {
+    selectedValue,
+    isLoading,
+    hasSearched,
+    lastResultCount,
+    failedQueries,
+    loadOptions,
+    handleChange,
+    compiledRegex,
+  } = useDynamicSearch({ options, resolvedDatasourceUid });
 
   const configStatus = useMemo((): ConfigStatus => {
     const missing: string[] = [];
@@ -280,215 +224,6 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
 
     return { configured: missing.length === 0, missing, warnings };
   }, [datasourceUid, resolvedDatasourceUid, queries, variableName]);
-
-  const compiledRegex = useMemo(() => {
-    if (!regex) {
-      return { regex: null, error: null };
-    }
-    try {
-      return { regex: new RegExp(regex), error: null };
-    } catch (e) {
-      return { regex: null, error: (e as Error).message };
-    }
-  }, [regex]);
-
-  const loadOptions = useCallback(
-    async (inputValue: string): Promise<Array<{ label: string; value: string; description?: string }>> => {
-      abortControllerRef.current?.abort();
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-        debounceTimeoutRef.current = null;
-      }
-      if (debounceResolveRef.current) {
-        debounceResolveRef.current(false);
-        debounceResolveRef.current = null;
-      }
-
-      const wasTyping = lastInputValueRef.current.length > 0;
-      const isNowEmpty = inputValue === '';
-      
-      if (wasTyping && isNowEmpty && selectedValue) {
-        setSelectedValue(null);
-        if (variableName) {
-          locationService.partial({ [`var-${variableName}`]: '' }, true);
-        }
-      }
-      
-      lastInputValueRef.current = inputValue;
-
-      if (!resolvedDatasourceUid || inputValue.length < minChars) {
-        setIsLoading(false);
-        setHasSearched(false);
-        setLastResultCount(null);
-        return [];
-      }
-
-      const currentRequestId = ++requestIdRef.current;
-
-      const shouldProceed = await new Promise<boolean>((resolve) => {
-        debounceResolveRef.current = resolve;
-        debounceTimeoutRef.current = setTimeout(() => {
-          debounceTimeoutRef.current = null;
-          debounceResolveRef.current = null;
-          resolve(true);
-        }, DEBOUNCE_DELAY);
-      });
-
-      if (!shouldProceed || currentRequestId !== requestIdRef.current) {
-        return [];
-      }
-
-      setIsLoading(true);
-      abortControllerRef.current = new AbortController();
-      const { regex: compiledRegexPattern } = compiledRegex;
-
-      try {
-        const ds = await getDataSourceSrv().get(resolvedDatasourceUid);
-
-        if (currentRequestId !== requestIdRef.current || abortControllerRef.current?.signal.aborted) {
-          return [];
-        }
-
-        if (!ds.metricFindQuery) {
-          setIsLoading(false);
-          return [];
-        }
-
-        // Deduplicate queries to avoid redundant API calls
-        const validQueries = queries.filter(isQueryValid);
-        const uniqueQueries = deduplicateQueries(validQueries);
-
-        // Build query strings and filter out empty ones
-        const queryStrings = uniqueQueries
-          .map((q) => buildQuery({ queryType: q.queryType, label: q.label, metric: q.metric }))
-          .filter((q) => q !== '');
-
-        if (queryStrings.length === 0) {
-          setIsLoading(false);
-          return [];
-        }
-
-        // Execute all queries in parallel with optional timeout
-        const queryPromises = uniqueQueries.map((queryConfig) => {
-          const queryStr = buildQuery({ queryType: queryConfig.queryType, label: queryConfig.label, metric: queryConfig.metric });
-          if (!queryStr) {
-            return Promise.resolve({ results: [], failedName: null });
-          }
-
-          const queryName = queryConfig.name || `Query ${queries.indexOf(queryConfig) + 1}`;
-          const queryPromise = ds.metricFindQuery!(queryStr, {});
-          const timeout = queryConfig.queryTimeout ?? DEFAULT_QUERY_TIMEOUT;
-          
-          if (timeout > 0) {
-            const timeoutPromise = new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error(`Query timed out after ${timeout}s`)), timeout * 1000)
-            );
-            return Promise.race([queryPromise, timeoutPromise])
-              .then((results) => ({ results, failedName: null }))
-              .catch((err) => {
-                console.warn(`Query "${queryName}" (${queryStr}) failed:`, err.message);
-                return { results: [], failedName: queryName };
-              });
-          }
-          return queryPromise
-            .then((results) => ({ results, failedName: null }))
-            .catch((err) => {
-              console.warn(`Query "${queryName}" (${queryStr}) failed:`, err.message);
-              return { results: [], failedName: queryName };
-            });
-        });
-
-        const allSettled = await Promise.all(queryPromises);
-
-        if (currentRequestId !== requestIdRef.current || abortControllerRef.current?.signal.aborted) {
-          return [];
-        }
-
-        const failedNames = allSettled.map(r => r.failedName).filter((name): name is string => name !== null);
-        setFailedQueries(failedNames);
-
-        // Merge and deduplicate results from all queries
-        const mergedResults = deduplicateResults(allSettled.flatMap(r => r.results));
-
-        let filteredResults = mergedResults;
-        if (inputValue) {
-          const lowerInput = inputValue.toLowerCase();
-          filteredResults = mergedResults.filter((r) => {
-            const text = r.text?.toLowerCase();
-            if (!text) {
-              return false;
-            }
-            switch (searchMode) {
-              case SEARCH_MODE.STARTS_WITH:
-                return text.startsWith(lowerInput);
-              case SEARCH_MODE.EXACT:
-                return text === lowerInput;
-              case SEARCH_MODE.CONTAINS:
-              default:
-                return text.includes(lowerInput);
-            }
-          });
-        }
-
-        setHasSearched(true);
-        setIsLoading(false);
-
-        if (filteredResults.length === 0) {
-          setLastResultCount(0);
-          return [];
-        }
-
-        let transformed = applyRegexTransform(filteredResults, compiledRegexPattern);
-
-        if (maxResults > 0) {
-          transformed = transformed.slice(0, maxResults);
-        }
-
-        setLastResultCount(transformed.length);
-
-        return transformed
-          .filter((r): r is typeof r & { value: string } => typeof r.value === 'string' && r.value !== '')
-          .map((r) => ({
-            label: (<HighlightedText text={r.label || r.value} highlight={inputValue} />) as unknown as string,
-            value: r.value,
-            description: r.description,
-          }));
-      } catch (err) {
-        if (currentRequestId !== requestIdRef.current || abortControllerRef.current?.signal.aborted) {
-          return [];
-        }
-        console.error('Failed to load options:', err);
-        setIsLoading(false);
-        setHasSearched(true);
-        setLastResultCount(0);
-        return [];
-      }
-    },
-    [resolvedDatasourceUid, queries, compiledRegex, minChars, maxResults, searchMode, selectedValue, variableName]
-  );
-
-  const handleChange = useCallback(
-    (option: { label?: string; value: string; description?: string } | null) => {
-      lastInputValueRef.current = '';
-      if (!option) {
-        setSelectedValue(null);
-        if (variableName) {
-          locationService.partial({ [`var-${variableName}`]: '' }, true);
-        }
-        return;
-      }
-      const newValue: SelectableValue<string> = {
-        label: option.label,
-        value: option.value,
-        description: option.description,
-      };
-      setSelectedValue(newValue);
-      if (variableName && newValue.value) {
-        locationService.partial({ [`var-${variableName}`]: newValue.value }, true);
-      }
-    },
-    [variableName]
-  );
 
   const panelStyle = useMemo(
     () => ({
@@ -580,24 +315,15 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
           )}
         </div>
 
-        <div className={styles.searchDetails}>
-          {isLoading && <span>Searching...</span>}
-          {hasSearched && !isLoading && lastResultCount !== null && (
-            <span>
-              {lastResultCount === maxResults && maxResults > 0
-                ? `Showing first ${maxResults} results`
-                : `Found ${lastResultCount} result${lastResultCount === 1 ? '' : 's'}`}
-            </span>
-          )}
-        </div>
+        <SearchResultsList
+          isLoading={isLoading}
+          hasSearched={hasSearched}
+          lastResultCount={lastResultCount}
+          maxResults={maxResults}
+          className={styles.searchDetails}
+        />
         
-        {failedQueries.length > 0 && (
-          <div style={{ marginTop: '8px' }}>
-            <Alert title="Data may be missing" severity="warning">
-              The following queries failed to execute: {failedQueries.join(', ')}. Check your data source or query configuration.
-            </Alert>
-          </div>
-        )}
+        <FailedQueriesWarning failedQueries={failedQueries} />
       </div>
     </div>
   );
@@ -605,7 +331,7 @@ const DynamicSearchPanelComponent: React.FC<Props> = ({ options, width, height }
 
 const MemoizedPanel = memo(DynamicSearchPanelComponent);
 
-export const DynamicSearchPanel: React.FC<Props> = (props) => (
+export const DynamicSearchPanel = (props: Props) => (
   <ErrorBoundary>
     <MemoizedPanel {...props} />
   </ErrorBoundary>

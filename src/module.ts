@@ -1,5 +1,5 @@
 import { PanelPlugin } from '@grafana/data';
-import { SimpleOptions, SEARCH_MODE, QUERY_TYPE, QueryType, SearchMode, DEFAULT_QUERY_TIMEOUT } from './types';
+import { SimpleOptions, SEARCH_MODE, QUERY_TYPE, QueryType, SearchMode } from './types';
 import { DynamicSearchPanel } from './components/DynamicSearchPanel';
 import { MIN_SEARCH_LENGTH, generateQueryId } from './utils';
 

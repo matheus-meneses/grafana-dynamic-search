@@ -1,4 +1,5 @@
 import { MetricFindValue, SelectableValue } from '@grafana/data';
+import { getTemplateSrv } from '@grafana/runtime';
 import { QueryOptions, QueryConfig, QUERY_TYPE } from './types';
 
 export const MIN_SEARCH_LENGTH = 3;
@@ -73,38 +74,73 @@ export const deduplicateResults = (results: MetricFindValue[]): MetricFindValue[
 export const applyRegexTransform = (
   values: MetricFindValue[],
   regex: RegExp | null
-): Array<SelectableValue<string>> => {
+): MetricFindValue[] => {
   const len = values.length;
 
   if (!regex) {
-    const result = new Array<SelectableValue<string>>(len);
-    for (let i = 0; i < len; i++) {
-      const item = values[i];
-      const text = item.text ?? '';
-      result[i] = {
-        label: text,
-        value: text,
-        description: (item as SelectableValue<string>).description,
-      };
-    }
-    return result;
+    return values;
   }
 
-  const result = new Array<SelectableValue<string>>(len);
+  const result = new Array<MetricFindValue & { __originalText?: string }>(len);
   for (let i = 0; i < len; i++) {
     const item = values[i];
     const text = item.text ?? '';
-    const description = (item as SelectableValue<string>).description;
     try {
       const match = text.match(regex);
       if (match && match[1]) {
-        result[i] = { label: match[1], value: match[1], description };
+        result[i] = { ...item, text: match[1], value: match[1], __originalText: text };
       } else {
-        result[i] = { label: text, value: text, description };
+        result[i] = item;
       }
     } catch {
-      result[i] = { label: text, value: text, description };
+      result[i] = item;
     }
   }
   return result;
+};
+
+/** Validates that a query config has the minimum required fields */
+export const isQueryValid = (q: QueryConfig): boolean => {
+  if (!q.metric) {
+    return false;
+  }
+  if (q.queryType === QUERY_TYPE.LABEL_VALUES && !q.label) {
+    return false;
+  }
+  return true;
+};
+
+export const getInitialVariableValue = (variableName: string | undefined): SelectableValue<string> | null => {
+  if (!variableName) {
+    return null;
+  }
+  try {
+    const templateSrv = getTemplateSrv();
+    const currentValue = templateSrv.replace(`$${variableName}`);
+    if (currentValue && currentValue !== `$${variableName}`) {
+      return { label: currentValue, value: currentValue };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+export const resolveDatasourceUid = (uid: string | undefined): string | undefined => {
+  if (!uid) {
+    return undefined;
+  }
+  if (uid.startsWith('$')) {
+    try {
+      const templateSrv = getTemplateSrv();
+      const resolved = templateSrv.replace(uid);
+      if (resolved && resolved !== uid) {
+        return resolved;
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  return uid;
 };
