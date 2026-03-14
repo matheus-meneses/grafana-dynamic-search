@@ -22,7 +22,7 @@ test.describe('Performance', () => {
     const queryOptions = panelEditPage.getCustomOptions('Query');
     const variableOptions = panelEditPage.getCustomOptions('Variable');
 
-    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
+    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
@@ -91,7 +91,7 @@ test.describe('Performance', () => {
     const queryOptions = panelEditPage.getCustomOptions('Query');
     const variableOptions = panelEditPage.getCustomOptions('Variable');
 
-    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select a data source' });
+    const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
