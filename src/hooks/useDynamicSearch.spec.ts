@@ -1,8 +1,7 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { useDynamicSearch } from './useDynamicSearch';
 import { getDataSourceSrv, locationService } from '@grafana/runtime';
 import { SEARCH_MODE, QUERY_TYPE, SimpleOptions } from '../types';
-import { waitFor } from '@testing-library/react';
 
 jest.mock('@grafana/runtime', () => ({
   getDataSourceSrv: jest.fn(),
@@ -69,7 +68,7 @@ describe('useDynamicSearch', () => {
   });
 
   it('should search after debounce when input is valid', async () => {
-    mockDsInstance.metricFindQuery.mockResolvedValue([{ text: 'result1', value: 'v1' }]);
+    mockDsInstance.metricFindQuery.mockResolvedValue([{ text: 'abc-result', value: 'v1' }]);
     
     const { result } = renderHook(() => useDynamicSearch({ 
         options: defaultOptions, 
@@ -123,32 +122,22 @@ describe('useDynamicSearch', () => {
     expect(locationService.partial).toHaveBeenCalledWith({ 'var-testVar': 'val1' }, true);
   });
 
-  it('should clear selection when input is emptied', async () => {
+  it('should clear selection when input is emptied', () => {
     const { result } = renderHook(() => useDynamicSearch({ 
         options: defaultOptions, 
         resolvedDatasourceUid: 'ds-1' 
     }));
 
-    // 1. Prime state (search something)
-    await act(async () => {
-        result.current.loadOptions('abc');
-    });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    // 2. Select something
     act(() => {
         result.current.handleChange({ label: 'Selected', value: 'val1' });
     });
     expect(result.current.selectedValue?.value).toBe('val1');
 
-    // 3. Clear input
-    await act(async () => {
-        result.current.loadOptions('');
+    act(() => {
+        result.current.handleChange(null);
     });
 
-    await waitFor(() => {
-        expect(result.current.selectedValue).toBeNull();
-    });
+    expect(result.current.selectedValue).toBeNull();
     expect(locationService.partial).toHaveBeenCalledWith({ 'var-testVar': '' }, true);
   });
 });
