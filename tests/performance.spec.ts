@@ -1,9 +1,20 @@
-import { test, expect } from '@grafana/plugin-e2e';
+import { test, expect, Page, Locator } from '@grafana/plugin-e2e';
 
-/**
- * Performance tests for Dynamic Search Panel.
- * These tests measure real-world performance in a browser environment.
- */
+async function addQuery(page: Page, opts: { metric: string; label?: string }) {
+  await page.getByTestId('add-query-button').click();
+  const queryCard = page.getByTestId('query-card-0');
+  await queryCard.getByPlaceholder('e.g., up, http_requests_total').fill(opts.metric);
+  if (opts.label !== undefined && opts.label !== '') {
+    await queryCard.getByPlaceholder('e.g., job, instance, handler').fill(opts.label);
+  }
+  return queryCard;
+}
+
+async function fillAndBlur(locator: Locator, value: string) {
+  await locator.fill(value);
+  await locator.blur();
+}
+
 test.describe('Performance', () => {
   test('search response time should be under 2 seconds', async ({
     dashboardPage,
@@ -19,17 +30,14 @@ test.describe('Performance', () => {
     const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
     
     const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
-    const queryOptions = panelEditPage.getCustomOptions('Query');
     const variableOptions = panelEditPage.getCustomOptions('Variable');
 
     const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
-    await queryOptions.getTextInput('Metric *').fill('prometheus_http_requests_total');
-    await variableOptions.getTextInput('Target Variable *').fill('perf_test');
-    await queryOptions.getTextInput('Label *').fill('handler');
-    await queryOptions.getTextInput('Label *').blur();
+    await addQuery(page, { metric: 'prometheus_http_requests_total', label: 'handler' });
+    await fillAndBlur(variableOptions.getTextInput('Target Variable *'), 'perf_test');
 
     await panelEditPage.apply();
 
@@ -39,17 +47,14 @@ test.describe('Performance', () => {
     const searchInput = searchWrapper.getByRole('combobox');
     await searchInput.click();
 
-    // Measure search response time
     const start = Date.now();
     await searchInput.fill('api');
     
-    // Wait for results to appear
     await expect(page.getByRole('option').first()).toBeVisible({ timeout: 5000 });
     const duration = Date.now() - start;
 
     console.log(`Search response time: ${duration}ms`);
     
-    // Assert performance threshold
     expect(duration).toBeLessThan(2000);
   });
 
@@ -88,17 +93,14 @@ test.describe('Performance', () => {
     const ds = await readProvisionedDataSource({ fileName: 'datasources.yml', name: 'Prometheus' });
     
     const dataSourceOptions = panelEditPage.getCustomOptions('Data Source');
-    const queryOptions = panelEditPage.getCustomOptions('Query');
     const variableOptions = panelEditPage.getCustomOptions('Variable');
 
     const dsSelect = dataSourceOptions.element.getByRole('combobox', { name: 'Select data source' });
     await dsSelect.click();
     await page.getByRole('option', { name: ds.name }).click();
 
-    await queryOptions.getTextInput('Metric *').fill('up');
-    await variableOptions.getTextInput('Target Variable *').fill('debounce_test');
-    await queryOptions.getTextInput('Label *').fill('job');
-    await queryOptions.getTextInput('Label *').blur();
+    await addQuery(page, { metric: 'up', label: 'job' });
+    await fillAndBlur(variableOptions.getTextInput('Target Variable *'), 'debounce_test');
 
     await panelEditPage.apply();
 
@@ -108,7 +110,6 @@ test.describe('Performance', () => {
     const searchInput = searchWrapper.getByRole('combobox');
     await searchInput.click();
 
-    // Track network requests to Prometheus
     const apiCalls: string[] = [];
     page.on('request', (request) => {
       if (request.url().includes('api/ds/query') || request.url().includes('api/v1')) {
@@ -116,19 +117,12 @@ test.describe('Performance', () => {
       }
     });
 
-    // Type rapidly (simulating fast typing)
     await searchInput.pressSequentially('prometheus', { delay: 30 });
 
-    // Wait for debounce to settle and request to complete
     await page.waitForTimeout(500);
 
     console.log(`API calls made during rapid typing: ${apiCalls.length}`);
     
-    // With proper debounce, we should have minimal API calls
-    // (ideally 1-2, not 10 for each character)
     expect(apiCalls.length).toBeLessThan(5);
   });
 });
-
-
-
