@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0]
+
+### Added
+
+- [#94](https://github.com/matheus-meneses/grafana-dynamic-search/issues/94): Multi-query support
+- Parallel query execution for better performance when using multiple queries
+- Warning banner for partially failed queries
+
+### Changed
+
+- **Major Refactoring**: Modernized the codebase using React Hooks and modular component architecture
+- Replaced deprecated `Select` component with modern `Combobox` in the panel and editor
+- Extracted core search logic into a reusable `useDynamicSearch` custom hook
+- Improved maintainability by breaking down `DynamicSearchPanel` into smaller, focused sub-components
+- Enhanced regex transformation logic to preserve original values for robust search filtering
+- Improved type safety and resolved several TypeScript/Linting issues
+
+### Fixed
+
+- Fixed missing e2e test assertions
+- Fixed regression where regex-transformed results could not be filtered by their original text
+- Fixed memory leaks in debounced operations by ensuring proper cleanup in the custom hook
+
+### Dependencies
+
+- Bump @grafana/plugin-e2e from 3.3.2 to 3.4.0
+- Bump the eslint group with 6 updates
+- Bump @types/node from 25.2.3 to 25.3.0
+- Bump sass from 1.97.2 to 1.97.3
+- Bump sass-loader from 16.0.6 to 16.0.7
+- Bump glob from 13.0.3 to 13.0.6
+- Bump @swc/helpers from 0.5.18 to 0.5.19
+- Bump actions/setup-node from 6.2.0 to 6.3.0
+- Bump grafana/plugin-actions/is-compatible from v1.0.2 to v1.0.3
+- Bump grafana/plugin-actions/build-plugin from v1.0.2 to v1.2.0
+- Bump actions/upload-artifact from 6 to 7
+- Bump actions/download-artifact from 7 to 8
+
 ## [1.4.1] - 2026-02-16
 
 ### Fixed
