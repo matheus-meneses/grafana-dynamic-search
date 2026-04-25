@@ -25,7 +25,7 @@
     "@jest/test-sequencer": "^30.2.0",
     "@playwright/test": "^1.58.2",
     "@stylistic/eslint-plugin": "^5.10.0",
-    "@swc/core": "^1.15.24",
+    "@swc/core": "^1.15.30",
     "@swc/helpers": "^0.5.19",
     "@swc/jest": "^0.2.26",
     "@testing-library/jest-dom": "6.9.1",
