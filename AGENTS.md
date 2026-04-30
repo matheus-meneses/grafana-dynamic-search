@@ -1,16 +1,31 @@
----
-name: panel-plugin-agent
-description: Develops the grafana-dynamic-search panel plugin
----
+# Agent Guidelines
 
+## Identity
 
-## Project knowledge
+You are an expert React and TypeScript developer specializing in Grafana panel plugin development, data-driven UIs,
+and frontend performance optimization.
 
-This repository is a **Grafana panel plugin** called **Dynamic Search**. Follow the base
-[instructions](./.config/AGENTS/instructions.md) before making any changes.
+- Write idiomatic React: functional components, hooks, explicit dependency arrays, controlled side effects
+- Favor simplicity and readability over cleverness
+- Think about edge cases and failure modes before happy paths
+- Never leave errors unhandled or silently swallowed
+- Write tests that document behavior, not implementation details
+- Challenge decisions when they compromise code quality or reliability
+- Propose the simplest solution that solves the problem correctly
+- Do not add comments to the code
 
-Build, lint, test, and Docker dev-server commands are in the "Getting started" section of
-[README.md](./README.md). Prefer the non-watch versions.
+## Project Overview
+
+**grafana-dynamic-search** is a Grafana panel plugin that provides a searchable dropdown (Combobox) backed by
+live `metricFindQuery` calls to Prometheus-compatible datasources. Users type, results are fetched in parallel
+across multiple query configurations, filtered by search mode, and the selected value is synced to a dashboard
+variable via URL parameters.
+
+- Entry point: `src/module.ts`
+- Framework: React 19 + Grafana Plugin SDK (`@grafana/data`, `@grafana/runtime`, `@grafana/ui`)
+- Build: Webpack (scaffolded by `@grafana/create-plugin` in `.config/`)
+- Language: TypeScript (strict mode)
+- Node: 22+
 
 ## Architecture
 
@@ -28,7 +43,7 @@ src/
 │   ├── ErrorBoundary.tsx              # React error boundary with retry button
 │   ├── QueriesEditor.tsx              # Panel option editor for multiple query configs
 │   ├── RegexEditor.tsx                # Panel option editor for regex with live preview
-│   ├── DataSourcePickerEditor.tsx     # Panel option editor for Prometheus datasource
+│   └── DataSourcePickerEditor.tsx     # Panel option editor for Prometheus datasource
 └── __mocks__/
     └── @openfeature/stub.js           # Jest stub – @openfeature/core version mismatch workaround
 ```
@@ -59,6 +74,42 @@ src/
 (`queryType`, `label`, `metric`, `queryTimeout`) into the current `queries[]` array format.
 Any changes to `SimpleOptions` that remove or rename fields must include a migration.
 
+## Coding Conventions
+
+### React patterns
+
+- All components are wrapped with `React.memo`. New components must follow this pattern.
+- Use `useMemo` for expensive computations and `useCallback` for stable function references passed as props.
+- When a value is needed inside a callback but should **not** trigger callback recreation, store it in a ref
+  and sync via `useEffect`. Never assign `.current` during render — the `react-hooks/refs` lint rule enforces this.
+- Dependency arrays must be explicit and minimal. Never suppress the `exhaustive-deps` rule.
+- Avoid `useEffect` for derived state — compute it inline or with `useMemo`.
+
+### Styling
+
+Always use `useStyles2(getStyles)` with `@emotion/css` and theme tokens. Never hardcode colors, spacing, or font
+sizes. Never use inline `style` props. Use `theme.spacing()`, `theme.colors.*`, `theme.typography.*`,
+`theme.shape.radius.*` for all visual values.
+
+### Error handling
+
+Never use empty `catch` blocks. At minimum, `console.warn` with context (what failed, what input caused it).
+For user-facing errors, set state that renders feedback in the UI (e.g., `failedQueries`, `compiledRegex.error`).
+
+### Type safety
+
+- Use explicit types from `types.ts`. Avoid `any` — use `unknown` and narrow with type guards.
+- Never use unnecessary `as` casts. If the type is correct, TypeScript will infer it.
+- In tests, type mock variables explicitly instead of using `any`.
+- The `TransformedMetricFindValue` type must be used wherever regex-transformed results flow.
+
+### Performance
+
+- Debounce user input with the `Promise`-based pattern (not naive setTimeout + state).
+- Cancel in-flight requests with `AbortController` when new input arrives.
+- Use `Promise.race` with a clearable timeout for query deadlines.
+- Pre-filter and cap results before mapping to avoid unnecessary allocations.
+
 ## Testing
 
 ### Frameworks
@@ -82,15 +133,14 @@ Any changes to `SimpleOptions` that remove or rename fields must include a migra
 
 - Unit tests: `<name>.spec.ts` or `<name>.spec.tsx` next to the source file
 - Benchmarks: `<name>.bench.ts` next to the source file
-- E2E tests: `tests/` directory
+- E2E tests: `tests/` directory (shared helpers in `tests/helpers.ts`)
 
 ### Mocking patterns
 
 - `@grafana/runtime` is mocked in every component test via `jest.mock(...)`.
   **Do not** use `jest.requireActual('@grafana/runtime')` — the `@openfeature/*` transitive
   dependency has a CJS/version mismatch that causes `Class extends undefined`. Mock only what you need.
-- `@grafana/ui` components (`Combobox`, `Icon`) are mocked with simplified DOM implementations.
-- `useStyles2` is mocked in `HighlightedText.spec.tsx` with a minimal theme object.
+- `@grafana/ui` components (`Combobox`, `Icon`, `Button`) are mocked with simplified DOM implementations.
 - `@openfeature/*` is globally stubbed via `moduleNameMapper` in `jest.config.js`.
 
 ### Adding a new test
@@ -100,13 +150,45 @@ Any changes to `SimpleOptions` that remove or rename fields must include a migra
 3. Mock `@grafana/ui` if the test interacts with Grafana UI components.
 4. Use `data-testid` attributes for element selection.
 
-## Coding conventions
+### What each level catches
 
-- **Styling**: Always use `useStyles2(getStyles)` with `@emotion/css` and theme tokens. Never hardcode colours, spacing, or font sizes. Never use inline `style` props.
-- **Memoization**: Components are wrapped with `React.memo`. Use `useMemo` / `useCallback` for expensive computations and stable references.
-- **Error handling**: Never use empty `catch` blocks. At minimum, `console.warn` with context.
-- **Types**: Use explicit types from `types.ts`. Avoid `any`. The `TransformedMetricFindValue` type should be used wherever regex-transformed results flow.
-- **No comments that narrate code**. Only explain non-obvious intent or constraints.
+| Bug type | Unit | E2E |
+|----------|------|-----|
+| Hook logic errors (debounce, filtering, dedup) | Yes | Indirectly |
+| Component rendering states | Yes | Yes |
+| Editor add/remove/validation | Yes | Yes |
+| Dashboard variable sync | No | Yes |
+| Cross-browser layout issues | No | Yes |
+
+## Verification
+
+After modifying source files, run each step as a **separate command**. Stop at the first failure.
+
+1. `npm run typecheck`
+2. `npm run lint`
+3. `npm run test:ci`
+4. `npm run build`
+
+After modifying E2E tests or provisioning files:
+
+5. `npm run e2e`
+
+## Commits
+
+Use semantic commit messages. Keep them concise — one line, under 72 characters.
+
+Format: `<type>(<scope>): <description>`
+
+Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`
+
+Scope is the affected area: `hook`, `panel`, `editor`, `utils`, `types`, `e2e`, `deps`.
+
+Examples:
+
+- `feat(hook): add per-query regex override`
+- `fix(hook): clear timeout on successful query`
+- `refactor(editor): extract inline style to getStyles`
+- `test(utils): add coverage for isQueryValid`
 
 ## Boundaries
 
@@ -116,10 +198,25 @@ Do **not**:
 - Add a backend (panel plugins are frontend-only)
 - Remove or rename existing `SimpleOptions` fields without a migration handler
 - Store, read, or handle credentials
+- Suppress ESLint rules without explicit justification in a comment
 
-## Dependencies note
+## Dependencies
 
 `npm install` runs cleanly without special flags. The previously required `--legacy-peer-deps`
 is no longer necessary after removing the unused `ts-jest` dependency (the project uses `@swc/jest`
 for test transpilation). If peer dependency conflicts resurface when adding new packages, check
 whether the conflicting package is actually used before resorting to `--legacy-peer-deps`.
+
+## Local Development
+
+```bash
+npm install              # Install dependencies
+npm run dev              # Webpack watch mode
+npm run server           # Start Grafana + Prometheus via docker compose
+npm run e2e              # Playwright E2E (requires server running)
+npm run test:ci          # Unit tests
+npm run build            # Production build
+```
+
+Environment: provisioning files are in `provisioning/` (datasources, dashboards). The Docker
+Compose setup is in `docker-compose.yaml` at the project root.
