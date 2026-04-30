@@ -50,7 +50,13 @@ export interface SimpleOptions {
 
 export const DEFAULT_QUERY_TIMEOUT = 10;
 
-/** Options required for building a query */
+export interface TransformedMetricFindValue {
+    text?: string;
+    value?: string;
+    description?: string;
+    __originalText?: string;
+}
+
 export interface QueryOptions {
     queryType: QueryType;
     label?: string;

@@ -30,8 +30,6 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel)
         options.queries = [];
       }
 
-      // Clean up legacy fields
-      // Clean up legacy fields
       delete options.queryType;
       delete options.label;
       delete options.metric;

@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { SelectableValue } from '@grafana/data';
 import { getDataSourceSrv, locationService } from '@grafana/runtime';
-import { SimpleOptions, SEARCH_MODE, QueryConfig, DEFAULT_QUERY_TIMEOUT } from '../types';
+import { SimpleOptions, SEARCH_MODE, QueryConfig, TransformedMetricFindValue, DEFAULT_QUERY_TIMEOUT } from '../types';
 import {
   buildQuery,
   applyRegexTransform,
@@ -148,7 +148,9 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
               } else if (regex) {
                   try {
                       compiledQueryRegex = new RegExp(regex);
-                  } catch (e) {}
+                  } catch (e) {
+                      console.warn(`Invalid global regex pattern:`, e);
+                  }
               }
               const transformed = applyRegexTransform(results, compiledQueryRegex);
               return { results: transformed, failedName: null };
@@ -186,7 +188,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
           let filteredResults = mergedResults;
           if (inputValue) {
             const lowerInput = inputValue.toLowerCase();
-            filteredResults = mergedResults.filter((r: any) => {
+            filteredResults = mergedResults.filter((r: TransformedMetricFindValue) => {
               const textToFilter = (r.__originalText || r.text || '').toLowerCase();
               switch (searchMode) {
                 case SEARCH_MODE.STARTS_WITH:

@@ -101,7 +101,3 @@ describe('Performance Benchmarks', () => {
   });
 });
 
-
-
-
-
