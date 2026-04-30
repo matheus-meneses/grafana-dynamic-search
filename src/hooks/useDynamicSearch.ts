@@ -39,7 +39,10 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
   const requestIdRef = useRef(0);
   const lastInputValueRef = useRef<string>('');
   const selectedValueRef = useRef(selectedValue);
-  selectedValueRef.current = selectedValue;
+
+  useEffect(() => {
+    selectedValueRef.current = selectedValue;
+  }, [selectedValue]);
 
   useEffect(() => {
     return () => {
@@ -66,7 +69,10 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
   }, [regex]);
 
   const compiledRegexRef = useRef(compiledRegex);
-  compiledRegexRef.current = compiledRegex;
+
+  useEffect(() => {
+    compiledRegexRef.current = compiledRegex;
+  }, [compiledRegex]);
 
   const loadOptions = useCallback(
     async (inputValue: string): Promise<Array<{ label: string; value: string; description?: string }>> => {
