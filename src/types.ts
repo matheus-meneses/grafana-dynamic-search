@@ -52,7 +52,7 @@ export const DEFAULT_QUERY_TIMEOUT = 10;
 
 export interface TransformedMetricFindValue {
     text?: string;
-    value?: string;
+    value?: string | number;
     description?: string;
     __originalText?: string;
 }
