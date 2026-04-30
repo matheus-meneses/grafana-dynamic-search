@@ -3,6 +3,7 @@ name: panel-plugin-agent
 description: Develops the grafana-dynamic-search panel plugin
 ---
 
+
 ## Project knowledge
 
 This repository is a **Grafana panel plugin** called **Dynamic Search**. Follow the base
