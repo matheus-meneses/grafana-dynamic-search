@@ -1,6 +1,13 @@
-import { buildQuery, applyRegexTransform, deduplicateQueries, deduplicateResults, generateQueryId } from './utils';
-import { QueryOptions, QueryType, QueryConfig } from './types';
+import { buildQuery, applyRegexTransform, deduplicateQueries, deduplicateResults, generateQueryId, isQueryValid, getInitialVariableValue, resolveDatasourceUid } from './utils';
+import { QueryOptions, QueryType, QueryConfig, QUERY_TYPE } from './types';
 import { MetricFindValue } from '@grafana/data';
+
+const mockReplace = jest.fn();
+jest.mock('@grafana/runtime', () => ({
+  getTemplateSrv: () => ({
+    replace: (input: string) => mockReplace(input),
+  }),
+}));
 
 const defaultOptions: QueryOptions = {
     queryType: 'label_values',
@@ -265,6 +272,90 @@ describe('utils', () => {
         ids.add(generateQueryId());
       }
       expect(ids.size).toBe(100);
+    });
+  });
+
+  describe('isQueryValid', () => {
+    it('should return false if metric is empty', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.METRICS, metric: '', name: '' })).toBe(false);
+    });
+
+    it('should return false for label_values without label', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.LABEL_VALUES, metric: 'up', label: '', name: '' })).toBe(false);
+    });
+
+    it('should return true for label_values with metric and label', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.LABEL_VALUES, metric: 'up', label: 'job', name: '' })).toBe(true);
+    });
+
+    it('should return true for metrics query with metric', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.METRICS, metric: '.*', name: '' })).toBe(true);
+    });
+
+    it('should return true for label_names with metric', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.LABEL_NAMES, metric: 'up', name: '' })).toBe(true);
+    });
+  });
+
+  describe('getInitialVariableValue', () => {
+    beforeEach(() => {
+      mockReplace.mockReset();
+    });
+
+    it('should return null if variableName is undefined', () => {
+      expect(getInitialVariableValue(undefined)).toBeNull();
+    });
+
+    it('should return null if variableName is empty string', () => {
+      expect(getInitialVariableValue('')).toBeNull();
+    });
+
+    it('should return null if template variable is not resolved', () => {
+      mockReplace.mockImplementation((input: string) => input);
+      expect(getInitialVariableValue('myVar')).toBeNull();
+      expect(mockReplace).toHaveBeenCalledWith('$myVar');
+    });
+
+    it('should return SelectableValue when variable resolves', () => {
+      mockReplace.mockReturnValue('resolved-value');
+      const result = getInitialVariableValue('myVar');
+      expect(result).toEqual({ label: 'resolved-value', value: 'resolved-value' });
+    });
+
+    it('should return null if getTemplateSrv throws', () => {
+      mockReplace.mockImplementation(() => { throw new Error('fail'); });
+      expect(getInitialVariableValue('myVar')).toBeNull();
+    });
+  });
+
+  describe('resolveDatasourceUid', () => {
+    beforeEach(() => {
+      mockReplace.mockReset();
+    });
+
+    it('should return undefined for empty uid', () => {
+      expect(resolveDatasourceUid(undefined)).toBeUndefined();
+      expect(resolveDatasourceUid('')).toBeUndefined();
+    });
+
+    it('should return uid as-is if it does not start with $', () => {
+      expect(resolveDatasourceUid('abc-123')).toBe('abc-123');
+    });
+
+    it('should resolve template variable uid', () => {
+      mockReplace.mockReturnValue('resolved-uid');
+      expect(resolveDatasourceUid('$ds')).toBe('resolved-uid');
+      expect(mockReplace).toHaveBeenCalledWith('$ds');
+    });
+
+    it('should return undefined if variable does not resolve', () => {
+      mockReplace.mockImplementation((input: string) => input);
+      expect(resolveDatasourceUid('$ds')).toBeUndefined();
+    });
+
+    it('should return undefined if getTemplateSrv throws', () => {
+      mockReplace.mockImplementation(() => { throw new Error('fail'); });
+      expect(resolveDatasourceUid('$ds')).toBeUndefined();
     });
   });
 

@@ -57,7 +57,7 @@ describe('useDynamicSearch', () => {
         resolvedDatasourceUid: 'ds-1' 
     }));
 
-    let results: any;
+    let results: Array<{ label: string; value: string; description?: string }> = [];
     await act(async () => {
       results = await result.current.loadOptions('ab');
     });

@@ -1,6 +1,6 @@
 import { MetricFindValue, SelectableValue } from '@grafana/data';
 import { getTemplateSrv } from '@grafana/runtime';
-import { QueryOptions, QueryConfig, QUERY_TYPE } from './types';
+import { QueryOptions, QueryConfig, TransformedMetricFindValue, QUERY_TYPE } from './types';
 
 export const MIN_SEARCH_LENGTH = 3;
 export const DEBOUNCE_DELAY = 350;
@@ -52,13 +52,9 @@ export const deduplicateQueries = (queries: QueryConfig[]): QueryConfig[] => {
   return result;
 };
 
-/**
- * Deduplicate MetricFindValue results by their text field.
- * Used after merging results from multiple parallel queries.
- */
-export const deduplicateResults = (results: MetricFindValue[]): MetricFindValue[] => {
+export const deduplicateResults = <T extends { text?: string }>(results: T[]): T[] => {
   const seen = new Set<string>();
-  const deduplicated: MetricFindValue[] = [];
+  const deduplicated: T[] = [];
 
   for (const result of results) {
     const text = result.text ?? '';
@@ -74,14 +70,14 @@ export const deduplicateResults = (results: MetricFindValue[]): MetricFindValue[
 export const applyRegexTransform = (
   values: MetricFindValue[],
   regex: RegExp | null
-): MetricFindValue[] => {
+): TransformedMetricFindValue[] => {
   const len = values.length;
 
   if (!regex) {
     return values;
   }
 
-  const result = new Array<MetricFindValue & { __originalText?: string }>(len);
+  const result = new Array<TransformedMetricFindValue>(len);
   for (let i = 0; i < len; i++) {
     const item = values[i];
     const text = item.text ?? '';
