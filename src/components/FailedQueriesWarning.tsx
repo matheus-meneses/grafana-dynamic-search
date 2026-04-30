@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { GrafanaTheme2 } from '@grafana/data';
 import { Alert, useStyles2 } from '@grafana/ui';
 import { css } from '@emotion/css';
@@ -13,7 +13,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
 });
 
-export const FailedQueriesWarning: React.FC<Props> = ({ failedQueries }) => {
+const FailedQueriesWarningComponent: React.FC<Props> = ({ failedQueries }) => {
   const styles = useStyles2(getStyles);
 
   if (failedQueries.length === 0) {
@@ -28,3 +28,5 @@ export const FailedQueriesWarning: React.FC<Props> = ({ failedQueries }) => {
     </div>
   );
 };
+
+export const FailedQueriesWarning = memo(FailedQueriesWarningComponent);

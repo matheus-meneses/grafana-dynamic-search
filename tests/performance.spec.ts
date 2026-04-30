@@ -1,19 +1,5 @@
-import { test, expect, Page, Locator } from '@grafana/plugin-e2e';
-
-async function addQuery(page: Page, opts: { metric: string; label?: string }) {
-  await page.getByTestId('add-query-button').click();
-  const queryCard = page.getByTestId('query-card-0');
-  await queryCard.getByPlaceholder('e.g., up, http_requests_total').fill(opts.metric);
-  if (opts.label !== undefined && opts.label !== '') {
-    await queryCard.getByPlaceholder('e.g., job, instance, handler').fill(opts.label);
-  }
-  return queryCard;
-}
-
-async function fillAndBlur(locator: Locator, value: string) {
-  await locator.fill(value);
-  await locator.blur();
-}
+import { test, expect } from '@grafana/plugin-e2e';
+import { addQuery, fillAndBlur } from './helpers';
 
 test.describe('Performance', () => {
   test('search response time should be under 2 seconds', async ({

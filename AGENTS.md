@@ -28,7 +28,6 @@ src/
 │   ├── QueriesEditor.tsx              # Panel option editor for multiple query configs
 │   ├── RegexEditor.tsx                # Panel option editor for regex with live preview
 │   ├── DataSourcePickerEditor.tsx     # Panel option editor for Prometheus datasource
-│   └── HighlightedText.tsx            # Highlighted substring renderer (unused in panel, available)
 └── __mocks__/
     └── @openfeature/stub.js           # Jest stub – @openfeature/core version mismatch workaround
 ```
@@ -36,11 +35,13 @@ src/
 ### Data flow
 
 1. User types in the `Combobox` (Grafana UI).
-2. `useDynamicSearch.loadOptions` debounces input (350 ms).
-3. Valid `QueryConfig[]` entries are deduplicated and executed in parallel via `ds.metricFindQuery`.
-4. Per-query regex or global regex is applied with `applyRegexTransform`.
-5. Results are merged, deduplicated by text, filtered by search mode (contains/starts_with/exact), and capped by `maxResults`.
-6. On selection, `locationService.partial` updates the dashboard variable URL parameter.
+2. `Combobox` calls `loadOptions(inputValue)` — an async callback, not static options.
+3. `useDynamicSearch.loadOptions` debounces input (350 ms) via a `Promise`-based debounce pattern.
+4. Valid `QueryConfig[]` entries are deduplicated and executed in parallel via `ds.metricFindQuery`.
+5. Each query is wrapped in a `Promise.race` against a configurable timeout (`queryTimeout`, default 10s). The timeout `setTimeout` is cleared on both success and failure to avoid leaks.
+6. Per-query regex or global regex is applied with `applyRegexTransform`. The global regex is compiled once via `useMemo` and accessed through a ref to avoid dependency array churn.
+7. Results are merged, deduplicated by text, filtered by search mode (contains/starts_with/exact), and capped by `maxResults`.
+8. On selection, `locationService.partial` updates the dashboard variable URL parameter.
 
 ### Key types
 
@@ -117,6 +118,7 @@ Do **not**:
 
 ## Dependencies note
 
-`npm install` requires `--legacy-peer-deps` because `eslint-plugin-react` does not yet
-support eslint 10+. The project pins `eslint@^9.7.0` to stay compatible. This flag is also
-needed because `@grafana/*` packages bring transitive peer dependency conflicts.
+`npm install` runs cleanly without special flags. The previously required `--legacy-peer-deps`
+is no longer necessary after removing the unused `ts-jest` dependency (the project uses `@swc/jest`
+for test transpilation). If peer dependency conflicts resurface when adding new packages, check
+whether the conflicting package is actually used before resorting to `--legacy-peer-deps`.

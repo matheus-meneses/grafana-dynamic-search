@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 interface Props {
   isLoading: boolean;
@@ -8,7 +8,7 @@ interface Props {
   className?: string;
 }
 
-export const SearchResultsList: React.FC<Props> = ({
+const SearchResultsListComponent: React.FC<Props> = ({
   isLoading,
   hasSearched,
   lastResultCount,
@@ -33,3 +33,5 @@ export const SearchResultsList: React.FC<Props> = ({
 
   return null;
 };
+
+export const SearchResultsList = memo(SearchResultsListComponent);

@@ -6,9 +6,8 @@ import { SimpleOptions, SEARCH_MODE } from '../types';
 
 const originalError = console.error;
 beforeAll(() => {
-  console.error = (...args: any[]) => {
-    if (args[0]?.includes?.('not wrapped in act') || 
-        (typeof args[0] === 'string' && args[0].includes('not wrapped in act'))) {
+  console.error = (...args: unknown[]) => {
+    if (typeof args[0] === 'string' && args[0].includes('not wrapped in act')) {
       return;
     }
     originalError.call(console, ...args);
@@ -27,12 +26,11 @@ const mockGetVariables = jest.fn();
 const mockReplace = jest.fn();
 
 jest.mock('@grafana/runtime', () => ({
-  ...jest.requireActual('@grafana/runtime'),
   getDataSourceSrv: () => ({
     get: mockGetDataSourceSrv,
   }),
   locationService: {
-    partial: (...args: any[]) => mockLocationService.partial(...args),
+    partial: (...args: unknown[]) => mockLocationService.partial(...args),
   },
   getTemplateSrv: () => ({
     getVariables: () => mockGetVariables(),
@@ -42,10 +40,16 @@ jest.mock('@grafana/runtime', () => ({
 
 jest.mock('@grafana/ui', () => ({
   ...jest.requireActual('@grafana/ui'),
-  Combobox: ({ onChange, value, options, placeholder, isClearable }: any) => {
-    const [opts, setOpts] = React.useState<any[]>([]);
+  Combobox: ({ onChange, value, options, placeholder, isClearable }: {
+    onChange: (option: { label?: string; value: string; description?: string } | null) => void;
+    value: string | null;
+    options: ((input: string) => Promise<Array<{ label: string; value: string; description?: string }>>) | Array<{ label: string; value: string }>;
+    placeholder?: string;
+    isClearable?: boolean;
+  }) => {
+    const [opts, setOpts] = React.useState<Array<{ label: string; value: string; description?: string }>>([]);
 
-    const handleInput = async (e: any) => {
+    const handleInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const inputValue = e.target.value;
         if (typeof options === 'function') {
             const res = await options(inputValue);

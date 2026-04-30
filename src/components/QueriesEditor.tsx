@@ -96,6 +96,11 @@ const getStyles = (theme: GrafanaTheme2) => ({
     color: ${theme.colors.error.text};
     margin-top: ${theme.spacing(0.5)};
   `,
+  queryNameWrapper: css`
+    flex: 1;
+    margin-right: ${theme.spacing(1)};
+    max-width: 300px;
+  `,
 });
 
 interface Props extends StandardEditorProps<QueryConfig[] | undefined, unknown, SimpleOptions> {}
@@ -177,7 +182,7 @@ const QueriesEditorComponent: React.FC<Props> = ({ value, onChange }) => {
             data-testid={`query-card-${index}`}
           >
             <div className={styles.queryHeader}>
-              <div style={{ flex: 1, marginRight: '8px', maxWidth: '300px' }}>
+              <div className={styles.queryNameWrapper}>
                 <Input
                   value={query.name || ''}
                   placeholder={`Query ${index + 1}`}

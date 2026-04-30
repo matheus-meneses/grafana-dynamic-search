@@ -38,6 +38,8 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
   const debounceResolveRef = useRef<((value: boolean) => void) | null>(null);
   const requestIdRef = useRef(0);
   const lastInputValueRef = useRef<string>('');
+  const selectedValueRef = useRef(selectedValue);
+  selectedValueRef.current = selectedValue;
 
   useEffect(() => {
     return () => {
@@ -63,6 +65,9 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
     }
   }, [regex]);
 
+  const compiledRegexRef = useRef(compiledRegex);
+  compiledRegexRef.current = compiledRegex;
+
   const loadOptions = useCallback(
     async (inputValue: string): Promise<Array<{ label: string; value: string; description?: string }>> => {
       abortControllerRef.current?.abort();
@@ -78,7 +83,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
       const wasTyping = lastInputValueRef.current.length > 0;
       const isNowEmpty = inputValue === '';
       
-      if (wasTyping && isNowEmpty && selectedValue) {
+      if (wasTyping && isNowEmpty && selectedValueRef.current) {
         setSelectedValue(null);
         if (variableName) {
           locationService.partial({ [`var-${variableName}`]: '' }, true);
@@ -138,31 +143,30 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
 
             const queryName = queryConfig.name || `Query ${queries.indexOf(queryConfig) + 1}`;
             const queryPromise = ds.metricFindQuery!(queryStr, {}).then((results) => {
-              let compiledQueryRegex: RegExp | null = null;
+              let activeRegex: RegExp | null = null;
               if (queryConfig.regex) {
                   try {
-                      compiledQueryRegex = new RegExp(queryConfig.regex);
+                      activeRegex = new RegExp(queryConfig.regex);
                   } catch (e) {
                       console.warn(`Invalid regex in query "${queryName}":`, e);
                   }
-              } else if (regex) {
-                  try {
-                      compiledQueryRegex = new RegExp(regex);
-                  } catch (e) {
-                      console.warn(`Invalid global regex pattern:`, e);
-                  }
+              } else {
+                  activeRegex = compiledRegexRef.current.regex;
               }
-              const transformed = applyRegexTransform(results, compiledQueryRegex);
+              const transformed = applyRegexTransform(results, activeRegex);
               return { results: transformed, failedName: null };
             });
             const timeout = queryConfig.queryTimeout ?? DEFAULT_QUERY_TIMEOUT;
             
             if (timeout > 0) {
-              const timeoutPromise = new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error(`Query timed out after ${timeout}s`)), timeout * 1000)
-              );
+              let timeoutId: ReturnType<typeof setTimeout>;
+              const timeoutPromise = new Promise<never>((_, reject) => {
+                timeoutId = setTimeout(() => reject(new Error(`Query timed out after ${timeout}s`)), timeout * 1000);
+              });
               return Promise.race([queryPromise, timeoutPromise])
+                .then((result) => { clearTimeout(timeoutId); return result; })
                 .catch((err) => {
+                  clearTimeout(timeoutId);
                   console.warn(`Query "${queryName}" (${queryStr}) failed:`, err.message);
                   return { results: [], failedName: queryName };
                 });
@@ -224,7 +228,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
               return {
                 label: r.text || val || '',
                 value: val || '',
-                description: (r as SelectableValue<string>).description,
+                description: r.description,
               };
             })
             .filter((r) => typeof r.value === 'string' && r.value !== '');
@@ -240,7 +244,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
         }
       });
     },
-    [resolvedDatasourceUid, queries, regex, minChars, maxResults, searchMode, selectedValue, variableName]
+    [resolvedDatasourceUid, queries, minChars, maxResults, searchMode, variableName]
   );
 
   const handleChange = useCallback(
