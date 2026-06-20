@@ -19,7 +19,7 @@
   "author": "Matheus Meneses",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@grafana/eslint-config": "^9.0.0",
+    "@grafana/eslint-config": "^10.0.0",
     "@grafana/plugin-e2e": "^3.5.1",
     "@grafana/tsconfig": "^2.0.1",
     "@jest/test-sequencer": "^30.2.0",
@@ -41,7 +41,7 @@
     "@typescript-eslint/parser": "^8.3.0",
     "copy-webpack-plugin": "^14.0.0",
     "css-loader": "^7.1.2",
-    "eslint": "^9.7.0",
+    "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsdoc": "^63.0.0",
     "eslint-plugin-react": "^7.37.5",
