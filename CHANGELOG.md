@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0]
+
+### Added
+
+- CodeQL static analysis (SAST) workflow for automated security scanning ([#147](https://github.com/matheus-meneses/grafana-dynamic-search/pull/147))
+
+### Security
+
+- Pinned all GitHub Actions to immutable commit SHAs to harden the CI supply chain ([#146](https://github.com/matheus-meneses/grafana-dynamic-search/pull/146))
+- Enabled Dependabot vulnerability alerts and automated security updates
+
+### Fixed
+
+- Restored Grafana 13.1 e2e compatibility by scoping the data source combobox locator, fixing the multi-minute e2e hang on Grafana 13.1 and nightly ([#148](https://github.com/matheus-meneses/grafana-dynamic-search/pull/148))
+- Reverted `grafana/plugin-actions/e2e-version` to v2.0.0 after v3.0.0 crashed the e2e version resolution
+- Regenerated `package-lock.json` to resolve `npm ci` sync failures in CI
+- Removed unused `ts-jest` dependency that caused a peer dependency conflict during `npm ci`
+- Fixed Grafana nightly e2e test failures and several broken test suite assertions
+
+### Dependencies
+
+- Bump `@grafana/*` packages to 13.0.1
+- Bump `typescript` to 6.0.3
+- Bump `sass` to 1.101.0 and `sass-loader` to 17.0.0 ([#149](https://github.com/matheus-meneses/grafana-dynamic-search/pull/149))
+- Bump `actions/checkout` to v7.0.0 ([#141](https://github.com/matheus-meneses/grafana-dynamic-search/pull/141))
+- Bump `codecov/codecov-action` to v7
+- Bump `@grafana/plugin-e2e`, `@playwright/test`, `@swc/core`, `@types/node`, `prettier`, `copy-webpack-plugin`, `terser-webpack-plugin`, `webpack-cli`, `eslint-plugin-jsdoc`, `@typescript-eslint/*`, and the eslint group
+
 ## [1.5.0]
 
 ### Added
