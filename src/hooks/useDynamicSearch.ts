@@ -5,6 +5,7 @@ import { SimpleOptions, SEARCH_MODE, QueryConfig, TransformedMetricFindValue, DE
 import {
   buildQuery,
   applyRegexTransform,
+  compileRegex,
   deduplicateQueries,
   deduplicateResults,
   isQueryValid,
@@ -57,16 +58,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
     };
   }, []);
 
-  const compiledRegex = useMemo(() => {
-    if (!regex) {
-      return { regex: null, error: null };
-    }
-    try {
-      return { regex: new RegExp(regex), error: null };
-    } catch (e) {
-      return { regex: null, error: (e as Error).message };
-    }
-  }, [regex]);
+  const compiledRegex = useMemo(() => compileRegex(regex), [regex]);
 
   const compiledRegexRef = useRef(compiledRegex);
 
@@ -151,11 +143,11 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
             const queryPromise = ds.metricFindQuery!(queryStr, {}).then((results) => {
               let activeRegex: RegExp | null = null;
               if (queryConfig.regex) {
-                  try {
-                      activeRegex = new RegExp(queryConfig.regex);
-                  } catch (e) {
-                      console.warn(`Invalid regex in query "${queryName}":`, e);
+                  const compiled = compileRegex(queryConfig.regex);
+                  if (compiled.error) {
+                      console.warn(`Invalid regex in query "${queryName}": ${compiled.error}`);
                   }
+                  activeRegex = compiled.regex;
               } else {
                   activeRegex = compiledRegexRef.current.regex;
               }

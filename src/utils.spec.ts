@@ -1,4 +1,4 @@
-import { buildQuery, applyRegexTransform, deduplicateQueries, deduplicateResults, generateQueryId, isQueryValid, getInitialVariableValue, resolveDatasourceUid } from './utils';
+import { buildQuery, applyRegexTransform, compileRegex, safeMatch, MAX_REGEX_PATTERN_LENGTH, MAX_REGEX_INPUT_LENGTH, deduplicateQueries, deduplicateResults, generateQueryId, isQueryValid, getInitialVariableValue, resolveDatasourceUid } from './utils';
 import { QueryOptions, QueryType, QueryConfig, QUERY_TYPE } from './types';
 import { MetricFindValue } from '@grafana/data';
 
@@ -158,6 +158,67 @@ describe('utils', () => {
         const regex = /node-(\d+)/;
         const result = applyRegexTransform(valuesWithDescription, regex);
         expect(result[0]).toEqual({ text: '01', value: '01', description: 'First node', __originalText: 'node-01' });
+    });
+  });
+
+  describe('compileRegex', () => {
+    it('should return null regex and null error for empty pattern', () => {
+      expect(compileRegex('')).toEqual({ regex: null, error: null });
+      expect(compileRegex(undefined)).toEqual({ regex: null, error: null });
+      expect(compileRegex(null)).toEqual({ regex: null, error: null });
+    });
+
+    it('should compile a valid pattern', () => {
+      const { regex, error } = compileRegex('^node-(\\d+)$');
+      expect(regex).toBeInstanceOf(RegExp);
+      expect(error).toBeNull();
+    });
+
+    it('should return an error for an invalid pattern', () => {
+      const { regex, error } = compileRegex('(unclosed');
+      expect(regex).toBeNull();
+      expect(error).toEqual(expect.any(String));
+    });
+
+    it('should reject patterns longer than the maximum length', () => {
+      const longPattern = 'a'.repeat(MAX_REGEX_PATTERN_LENGTH + 1);
+      const { regex, error } = compileRegex(longPattern);
+      expect(regex).toBeNull();
+      expect(error).toContain('maximum length');
+    });
+  });
+
+  describe('safeMatch', () => {
+    it('should return null when regex is null', () => {
+      expect(safeMatch('anything', null)).toBeNull();
+    });
+
+    it('should return capture groups for a matching pattern', () => {
+      const match = safeMatch('node-42', /node-(\d+)/);
+      expect(match?.[1]).toBe('42');
+    });
+
+    it('should return null when there is no match', () => {
+      expect(safeMatch('abc', /\d+/)).toBeNull();
+    });
+
+    it('should cap the tested input length', () => {
+      const oversized = 'a'.repeat(MAX_REGEX_INPUT_LENGTH + 5000);
+      const match = safeMatch(oversized, /^a+/);
+      expect(match?.[0].length).toBe(MAX_REGEX_INPUT_LENGTH);
+    });
+
+    it('should return safely and without hanging on a pathological pattern', () => {
+      const evil = '(a+)+$'.repeat(300);
+      const { regex } = compileRegex(evil);
+      expect(regex).toBeNull();
+
+      const start = performance.now();
+      const result = safeMatch('a'.repeat(50000) + '!', regex);
+      const elapsed = performance.now() - start;
+
+      expect(result).toBeNull();
+      expect(elapsed).toBeLessThan(100);
     });
   });
 

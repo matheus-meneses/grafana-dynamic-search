@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, memo } from 'react';
 import { StandardEditorProps, GrafanaTheme2 } from '@grafana/data';
 import { Input, useStyles2, Icon, TextArea } from '@grafana/ui';
 import { css, keyframes } from '@emotion/css';
+import { compileRegex, safeMatch } from '../utils';
 
 const fadeIn = keyframes`
   from { opacity: 0; }
@@ -84,34 +85,23 @@ interface ValidationResult {
 }
 
 const validateRegex = (pattern: string): ValidationResult => {
-  if (!pattern) {
-    return { valid: true, error: null };
-  }
-  try {
-    new RegExp(pattern);
-    return { valid: true, error: null };
-  } catch (e) {
-    return { valid: false, error: (e as Error).message };
-  }
+  const { error } = compileRegex(pattern);
+  return { valid: error === null, error };
 };
 
 const applyTestRegex = (pattern: string, testValue: string): string | null => {
   if (!pattern || !testValue) {
     return null;
   }
-  try {
-    const regex = new RegExp(pattern);
-    const match = testValue.match(regex);
-    if (match && match[1]) {
-      return match[1];
-    }
-    if (match) {
-      return match[0];
-    }
-    return null;
-  } catch {
-    return null;
+  const { regex } = compileRegex(pattern);
+  const match = safeMatch(testValue, regex);
+  if (match && match[1]) {
+    return match[1];
   }
+  if (match) {
+    return match[0];
+  }
+  return null;
 };
 
 const RegexEditorComponent: React.FC<StandardEditorProps<string>> = ({ value, onChange }) => {

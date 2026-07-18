@@ -11,7 +11,7 @@ import {
 } from '@grafana/ui';
 import { css } from '@emotion/css';
 import { SimpleOptions, QueryConfig, QUERY_TYPE, QueryType } from '../types';
-import { generateQueryId, buildQuery } from '../utils';
+import { generateQueryId, buildQuery, compileRegex } from '../utils';
 
 const queryTypeOptions = [
   { value: QUERY_TYPE.LABEL_VALUES as QueryType, label: 'Label values' },
@@ -250,17 +250,16 @@ const QueriesEditorComponent: React.FC<Props> = ({ value, onChange }) => {
                 placeholder="e.g., ^/api/(.*)"
               />
               {query.regex && (() => {
-                try {
-                  new RegExp(query.regex);
+                const { error } = compileRegex(query.regex);
+                if (!error) {
                   return null;
-                } catch (e) {
-                  return (
-                    <div className={styles.regexError} data-testid={`query-regex-error-${index}`}>
-                      <Icon name="exclamation-triangle" size="sm" />
-                      <span>Invalid regex: {(e as Error).message}</span>
-                    </div>
-                  );
                 }
+                return (
+                  <div className={styles.regexError} data-testid={`query-regex-error-${index}`}>
+                    <Icon name="exclamation-triangle" size="sm" />
+                    <span>Invalid regex: {error}</span>
+                  </div>
+                );
               })()}
             </div>
 
