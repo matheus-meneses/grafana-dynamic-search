@@ -203,6 +203,26 @@ describe('DynamicSearchPanel', () => {
         expect(screen.getByTestId('option-node-02')).toBeInTheDocument();
     });
 
+    it('clears the loading indicator after a search resolves', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'node-01', value: 'node-01' },
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'node' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-node-01')).toBeInTheDocument();
+        });
+        await waitFor(() => {
+            expect(screen.queryByTestId('dynamic-search-panel-loading')).not.toBeInTheDocument();
+        });
+    });
+
     it('does not fetch options when input is too short', async () => {
         const mockMetricFindQuery = jest.fn();
         mockGetDataSourceSrv.mockReturnValue({
@@ -253,6 +273,21 @@ describe('DynamicSearchPanel', () => {
         await waitFor(() => {}); 
         const options = screen.queryAllByTestId(/^option-/);
         expect(options).toHaveLength(0);
+    });
+
+    it('handles datasource resolution failure gracefully', async () => {
+        mockGetDataSourceSrv.mockRejectedValue(new Error('datasource unavailable'));
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'test' } });
+
+        await waitFor(() => {
+            expect(consoleSpy).toHaveBeenCalledWith('Failed to load options:', expect.any(Error));
+        });
+        expect(screen.queryByTestId('dynamic-search-panel-loading')).not.toBeInTheDocument();
+        consoleSpy.mockRestore();
     });
 
     it('filters results based on input', async () => {
@@ -716,7 +751,7 @@ describe('DynamicSearchPanel - Cleanup', () => {
         expect(() => unmount()).not.toThrow();
     });
 
-    it('should abort pending requests on unmount', async () => {
+    it('should discard pending requests on unmount without errors', async () => {
         const mockMetricFindQuery = jest.fn().mockImplementation(() => {
             return new Promise((resolve) => {
                 setTimeout(() => resolve([{ text: 'result', value: 'result' }]), 1000);
