@@ -34,7 +34,6 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
   const [lastResultCount, setLastResultCount] = useState<number | null>(null);
   const [failedQueries, setFailedQueries] = useState<string[]>([]);
 
-  const abortControllerRef = useRef<AbortController | null>(null);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debounceResolveRef = useRef<((value: boolean) => void) | null>(null);
   const requestIdRef = useRef(0);
@@ -47,7 +46,6 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
 
   useEffect(() => {
     return () => {
-      abortControllerRef.current?.abort();
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
@@ -68,7 +66,6 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
 
   const loadOptions = useCallback(
     async (inputValue: string): Promise<Array<{ label: string; value: string; description?: string }>> => {
-      abortControllerRef.current?.abort();
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
         debounceTimeoutRef.current = null;
@@ -112,11 +109,10 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
         }
 
         setIsLoading(true);
-        abortControllerRef.current = new AbortController();
         try {
           const ds = await getDataSourceSrv().get(resolvedDatasourceUid);
 
-          if (currentRequestId !== requestIdRef.current || abortControllerRef.current?.signal.aborted) {
+          if (currentRequestId !== requestIdRef.current) {
             return [];
           }
 
@@ -178,7 +174,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
 
           const allSettled = await Promise.all(queryPromises);
 
-          if (currentRequestId !== requestIdRef.current || abortControllerRef.current?.signal.aborted) {
+          if (currentRequestId !== requestIdRef.current) {
             return [];
           }
 
@@ -231,7 +227,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
             })
             .filter((r) => typeof r.value === 'string' && r.value !== '');
         } catch (err) {
-          if (currentRequestId !== requestIdRef.current || abortControllerRef.current?.signal.aborted) {
+          if (currentRequestId !== requestIdRef.current) {
             return [];
           }
           console.error('Failed to load options:', err);
