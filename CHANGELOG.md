@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Fixed CodeQL analysis failing by bumping `github/codeql-action` init and analyze to the same version, v4.37.1 ([#167](https://github.com/matheus-meneses/grafana-dynamic-search/pull/167))
+- Fixed recurring `npm ci` lockfile drift in CI by aligning the declared `packageManager` to npm 10, matching the CI toolchain ([#168](https://github.com/matheus-meneses/grafana-dynamic-search/pull/168))
+
+### Dependencies
+
+- Bump `@grafana/data`, `@grafana/i18n`, and `@grafana/runtime` to 13.1.0 ([#168](https://github.com/matheus-meneses/grafana-dynamic-search/pull/168))
+- Bump `webpack` to 5.108.4, `webpack-cli` to 7.2.1, and `semver` to 7.8.5 ([#168](https://github.com/matheus-meneses/grafana-dynamic-search/pull/168))
+- Bump `actions/setup-node` to v7.0.0 ([#159](https://github.com/matheus-meneses/grafana-dynamic-search/pull/159))
+- Bump `actions/setup-go` to 6.5.0 ([#151](https://github.com/matheus-meneses/grafana-dynamic-search/pull/151))
+- Bump `actions/stale` to 10.4.0 ([#158](https://github.com/matheus-meneses/grafana-dynamic-search/pull/158))
+- Bump `grafana/plugin-actions/e2e-version` to 3.0.2 ([#150](https://github.com/matheus-meneses/grafana-dynamic-search/pull/150), [#160](https://github.com/matheus-meneses/grafana-dynamic-search/pull/160))
+- Bump `grafana/plugin-actions/is-compatible` to 1.0.4 ([#161](https://github.com/matheus-meneses/grafana-dynamic-search/pull/161))
+
 ## [1.6.0]
 
 ### Added
