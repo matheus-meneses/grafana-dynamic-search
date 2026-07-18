@@ -217,14 +217,11 @@ describe('DynamicSearchPanel', () => {
         expect(mockMetricFindQuery).not.toHaveBeenCalled();
     });
 
-    it('does not crash when buildQuery returns empty string', async () => {
+    it('flags queries that cannot build a query as invalid configuration', async () => {
         render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, queries: [{ id: 'q-1', queryType: 'invalid' as any, metric: 'up' }] }} />);
-        
-        const input = await screen.findByTestId('combobox-input');
-        fireEvent.change(input, { target: { value: 'test' } });
-        
-        // Should just return empty list, not crash
-        await waitFor(() => {}, { timeout: 100 });
+
+        expect(await screen.findByText('At least one valid query (check metric and label fields)')).toBeInTheDocument();
+        expect(screen.queryByTestId('combobox-input')).not.toBeInTheDocument();
     });
 
     it('handles metricFindQuery failure gracefully', async () => {
