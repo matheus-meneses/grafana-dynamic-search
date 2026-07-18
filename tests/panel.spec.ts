@@ -207,6 +207,31 @@ test.describe('Dynamic Search Panel', () => {
     await expect(labelInput).toBeVisible();
   });
 
+  test('should show a raw query textarea and hide metric when query type is raw', async ({
+    dashboardPage,
+    readProvisionedDashboard,
+    page,
+  }) => {
+    const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
+    await dashboardPage.goto({ uid: dashboard.uid });
+    const panelEditPage = await dashboardPage.addPanel();
+    await panelEditPage.setVisualization('Dynamic Search');
+
+    await page.getByTestId('add-query-button').click();
+    const queryCard = page.getByTestId('query-card-0');
+    const metricInput = queryCard.getByPlaceholder('e.g., up, http_requests_total');
+
+    await expect(metricInput).toBeVisible();
+
+    await queryCard.getByRole('combobox').click();
+    await page.getByRole('option', { name: 'Raw' }).click();
+
+    await expect(metricInput).not.toBeVisible();
+    await expect(
+      queryCard.getByPlaceholder('Datasource-specific query, e.g., label_values(up, job)')
+    ).toBeVisible();
+  });
+
   test('should display custom placeholder text', async ({
     dashboardPage,
     readProvisionedDashboard,

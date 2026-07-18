@@ -3,6 +3,7 @@ import { StandardEditorProps, GrafanaTheme2 } from '@grafana/data';
 import {
   IconButton,
   Input,
+  TextArea,
   useStyles2,
   Icon,
   Combobox,
@@ -17,6 +18,7 @@ const queryTypeOptions = [
   { value: QUERY_TYPE.LABEL_VALUES as QueryType, label: 'Label values' },
   { value: QUERY_TYPE.LABEL_NAMES as QueryType, label: 'Label names' },
   { value: QUERY_TYPE.METRICS as QueryType, label: 'Metrics' },
+  { value: QUERY_TYPE.RAW as QueryType, label: 'Raw' },
 ];
 
 const getStyles = (theme: GrafanaTheme2) => ({
@@ -173,7 +175,9 @@ const QueriesEditorComponent: React.FC<Props> = ({ value, onChange }) => {
           queryType: query.queryType,
           label: query.label,
           metric: query.metric || '',
+          rawQuery: query.rawQuery,
         });
+        const isRaw = query.queryType === QUERY_TYPE.RAW;
 
         return (
           <div
@@ -223,22 +227,36 @@ const QueriesEditorComponent: React.FC<Props> = ({ value, onChange }) => {
               </div>
             )}
 
-            <div className={styles.fieldRow}>
-              <label className={styles.fieldLabel}>
-                {query.queryType === QUERY_TYPE.LABEL_VALUES ? 'Metric' : 'Metric (optional)'}
-              </label>
-              <Input
-                value={query.metric}
-                onChange={(e) =>
-                  updateQuery(index, { metric: e.currentTarget.value })
-                }
-                placeholder={
-                  query.queryType === QUERY_TYPE.LABEL_VALUES
-                    ? 'e.g., up, http_requests_total'
-                    : 'Leave empty to list all'
-                }
-              />
-            </div>
+            {isRaw ? (
+              <div className={styles.fieldRow}>
+                <label className={styles.fieldLabel}>Raw query *</label>
+                <TextArea
+                  value={query.rawQuery ?? ''}
+                  onChange={(e) =>
+                    updateQuery(index, { rawQuery: e.currentTarget.value })
+                  }
+                  rows={3}
+                  placeholder="Datasource-specific query, e.g., label_values(up, job)"
+                />
+              </div>
+            ) : (
+              <div className={styles.fieldRow}>
+                <label className={styles.fieldLabel}>
+                  {query.queryType === QUERY_TYPE.LABEL_VALUES ? 'Metric' : 'Metric (optional)'}
+                </label>
+                <Input
+                  value={query.metric}
+                  onChange={(e) =>
+                    updateQuery(index, { metric: e.currentTarget.value })
+                  }
+                  placeholder={
+                    query.queryType === QUERY_TYPE.LABEL_VALUES
+                      ? 'e.g., up, http_requests_total'
+                      : 'Leave empty to list all'
+                  }
+                />
+              </div>
+            )}
 
             <div className={styles.fieldRow}>
               <label className={styles.fieldLabel}>Regex</label>

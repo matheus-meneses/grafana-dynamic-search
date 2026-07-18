@@ -10,28 +10,22 @@ const DataSourcePickerEditorComponent: React.FC<Props> = ({ value, onChange }) =
     const result: Array<ComboboxOption<string>> = [];
 
     const dsSrv = getDataSourceSrv();
-    const promDatasources = dsSrv.getList({ type: 'prometheus' });
+    const allDatasources = dsSrv.getList();
 
-    const prometheusVariables = getTemplateSrv()
+    const datasourceVariables = getTemplateSrv()
       .getVariables()
-      .filter((v) => {
-        if (v.type !== 'datasource') {
-          return false;
-        }
-        const dsVar = v as { query?: string };
-        return dsVar.query === 'prometheus';
-      })
+      .filter((v) => v.type === 'datasource')
       .map((v) => ({
         label: `$${v.name}`,
         value: `$${v.name}`,
         description: 'Dashboard variable',
       }));
-    result.push(...prometheusVariables);
+    result.push(...datasourceVariables);
 
-    const datasources = promDatasources.map((ds) => ({
+    const datasources = allDatasources.map((ds) => ({
       label: ds.name,
       value: ds.uid ?? '',
-      description: ds.isDefault ? 'Default' : undefined,
+      description: ds.isDefault ? `Default • ${ds.type}` : ds.type,
     }));
     result.push(...datasources);
 

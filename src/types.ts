@@ -2,6 +2,7 @@ export const QUERY_TYPE = {
     LABEL_VALUES: 'label_values',
     LABEL_NAMES: 'label_names',
     METRICS: 'metrics',
+    RAW: 'raw',
 } as const;
 
 export type QueryType = (typeof QUERY_TYPE)[keyof typeof QUERY_TYPE];
@@ -21,6 +22,8 @@ export interface QueryConfig {
     queryType: QueryType;
     label?: string;
     metric: string;
+    /** Raw datasource query string, used verbatim when queryType is RAW */
+    rawQuery?: string;
     /** Regex pattern to transform results using capture groups */
     regex?: string;
     /** Maximum time in seconds to wait for this specific query (0 for no timeout) */
@@ -61,4 +64,5 @@ export interface QueryOptions {
     queryType: QueryType;
     label?: string;
     metric: string;
+    rawQuery?: string;
 }

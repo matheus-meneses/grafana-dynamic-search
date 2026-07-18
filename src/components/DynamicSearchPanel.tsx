@@ -201,7 +201,7 @@ const DynamicSearchPanelComponent = ({ options, width, height }: Props) => {
     } else {
       const hasValidQuery = queries.some(isQueryValid);
       if (!hasValidQuery) {
-        missing.push('At least one valid query (check metric and label fields)');
+        missing.push('At least one valid query (check metric, label, or raw query fields)');
       }
     }
 
