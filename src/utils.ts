@@ -95,15 +95,8 @@ export const applyRegexTransform = (
   return result;
 };
 
-/** Validates that a query config has the minimum required fields */
 export const isQueryValid = (q: QueryConfig): boolean => {
-  if (!q.metric) {
-    return false;
-  }
-  if (q.queryType === QUERY_TYPE.LABEL_VALUES && !q.label) {
-    return false;
-  }
-  return true;
+  return buildQuery({ queryType: q.queryType, label: q.label, metric: q.metric }) !== '';
 };
 
 export const getInitialVariableValue = (variableName: string | undefined): SelectableValue<string> | null => {

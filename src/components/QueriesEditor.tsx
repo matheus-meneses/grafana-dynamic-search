@@ -224,13 +224,19 @@ const QueriesEditorComponent: React.FC<Props> = ({ value, onChange }) => {
             )}
 
             <div className={styles.fieldRow}>
-              <label className={styles.fieldLabel}>Metric *</label>
+              <label className={styles.fieldLabel}>
+                {query.queryType === QUERY_TYPE.LABEL_VALUES ? 'Metric' : 'Metric (optional)'}
+              </label>
               <Input
                 value={query.metric}
                 onChange={(e) =>
                   updateQuery(index, { metric: e.currentTarget.value })
                 }
-                placeholder="e.g., up, http_requests_total"
+                placeholder={
+                  query.queryType === QUERY_TYPE.LABEL_VALUES
+                    ? 'e.g., up, http_requests_total'
+                    : 'Leave empty to list all'
+                }
               />
             </div>
 

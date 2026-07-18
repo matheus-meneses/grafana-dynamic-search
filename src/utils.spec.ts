@@ -276,24 +276,36 @@ describe('utils', () => {
   });
 
   describe('isQueryValid', () => {
-    it('should return false if metric is empty', () => {
-      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.METRICS, metric: '', name: '' })).toBe(false);
-    });
-
-    it('should return false for label_values without label', () => {
-      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.LABEL_VALUES, metric: 'up', label: '', name: '' })).toBe(false);
-    });
-
-    it('should return true for label_values with metric and label', () => {
-      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.LABEL_VALUES, metric: 'up', label: 'job', name: '' })).toBe(true);
+    it('should return true for metrics query without metric', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.METRICS, metric: '', name: '' })).toBe(true);
     });
 
     it('should return true for metrics query with metric', () => {
       expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.METRICS, metric: '.*', name: '' })).toBe(true);
     });
 
+    it('should return true for label_names without metric', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.LABEL_NAMES, metric: '', name: '' })).toBe(true);
+    });
+
     it('should return true for label_names with metric', () => {
       expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.LABEL_NAMES, metric: 'up', name: '' })).toBe(true);
+    });
+
+    it('should return true for label_values with only label', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.LABEL_VALUES, metric: '', label: 'job', name: '' })).toBe(true);
+    });
+
+    it('should return true for label_values with metric and label', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.LABEL_VALUES, metric: 'up', label: 'job', name: '' })).toBe(true);
+    });
+
+    it('should return false for label_values without label', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.LABEL_VALUES, metric: 'up', label: '', name: '' })).toBe(false);
+    });
+
+    it('should return false for an unknown query type', () => {
+      expect(isQueryValid({ id: '1', queryType: 'invalid' as QueryType, metric: 'up', name: '' })).toBe(false);
     });
   });
 
