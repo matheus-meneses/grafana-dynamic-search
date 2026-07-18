@@ -208,15 +208,24 @@ describe('utils', () => {
       expect(match?.[0].length).toBe(MAX_REGEX_INPUT_LENGTH);
     });
 
-    it('should return safely and without hanging on a pathological pattern', () => {
-      const evil = '(a+)+$'.repeat(300);
-      const { regex } = compileRegex(evil);
+    it('should not throw when matching raises an error', () => {
+      const throwing = {
+        [Symbol.match]() {
+          throw new Error('boom');
+        },
+      } as unknown as RegExp;
+      expect(safeMatch('anything', throwing)).toBeNull();
+    });
+
+    it('should neutralize an over-length pattern before it can execute', () => {
+      const pathological = 'a'.repeat(MAX_REGEX_PATTERN_LENGTH + 1);
+      const { regex, error } = compileRegex(pathological);
       expect(regex).toBeNull();
+      expect(error).toContain('maximum length');
 
       const start = performance.now();
-      const result = safeMatch('a'.repeat(50000) + '!', regex);
+      const result = safeMatch('a'.repeat(50000), regex);
       const elapsed = performance.now() - start;
-
       expect(result).toBeNull();
       expect(elapsed).toBeLessThan(100);
     });

@@ -81,7 +81,7 @@ describe('RegexEditor', () => {
     });
 
     it('shows test preview section when valid regex is entered', () => {
-        render(<RegexEditor {...defaultProps} value="node-(\d+)" />);
+        render(<RegexEditor {...defaultProps} value={'node-(\\d+)'} />);
         
         expect(screen.getByText('Test your regex:')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('Enter a sample value to test')).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe('RegexEditor', () => {
     });
 
     it('shows match result when test value matches regex with capture group', () => {
-        render(<RegexEditor {...defaultProps} value="node-(\d+)" />);
+        render(<RegexEditor {...defaultProps} value={'node-(\\d+)'} />);
         
         const testInput = screen.getByPlaceholderText('Enter a sample value to test');
         fireEvent.change(testInput, { target: { value: 'node-01' } });
@@ -118,7 +118,7 @@ describe('RegexEditor', () => {
     });
 
     it('shows no match when test value does not match regex', () => {
-        render(<RegexEditor {...defaultProps} value="node-(\d+)" />);
+        render(<RegexEditor {...defaultProps} value={'node-(\\d+)'} />);
         
         const testInput = screen.getByPlaceholderText('Enter a sample value to test');
         fireEvent.change(testInput, { target: { value: 'other-value' } });
@@ -127,7 +127,7 @@ describe('RegexEditor', () => {
     });
 
     it('does not show preview result when test input is empty', () => {
-        render(<RegexEditor {...defaultProps} value="node-(\d+)" />);
+        render(<RegexEditor {...defaultProps} value={'node-(\\d+)'} />);
         
         expect(screen.queryByText('No match')).not.toBeInTheDocument();
     });

@@ -477,6 +477,35 @@ describe('DynamicSearchPanel - Multi-Query', () => {
 
         consoleSpy.mockRestore();
     });
+
+    it('should warn and skip transformation when a per-query regex is invalid', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'pod-01', value: 'pod-01' },
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+        const invalidRegexOptions: SimpleOptions = {
+            ...defaultOptions,
+            queries: [
+                { id: 'q-1', queryType: 'label_values', label: 'pod', metric: 'up', regex: '(' },
+            ],
+            maxResults: 0,
+        };
+
+        render(<DynamicSearchPanel {...defaultProps} options={invalidRegexOptions} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'pod' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-pod-01')).toBeInTheDocument();
+        });
+        expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid regex in query'));
+
+        consoleSpy.mockRestore();
+    });
 });
 
 describe('DynamicSearchPanel - Debounce Effectiveness', () => {
