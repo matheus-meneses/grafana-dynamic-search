@@ -67,28 +67,60 @@ export const deduplicateResults = <T extends { text?: string }>(results: T[]): T
   return deduplicated;
 };
 
+export const MAX_REGEX_PATTERN_LENGTH = 1000;
+export const MAX_REGEX_INPUT_LENGTH = 10000;
+
+export interface CompiledRegex {
+  regex: RegExp | null;
+  error: string | null;
+}
+
+export const compileRegex = (pattern: string | undefined | null): CompiledRegex => {
+  if (!pattern) {
+    return { regex: null, error: null };
+  }
+  if (pattern.length > MAX_REGEX_PATTERN_LENGTH) {
+    return {
+      regex: null,
+      error: `Pattern exceeds maximum length of ${MAX_REGEX_PATTERN_LENGTH} characters`,
+    };
+  }
+  try {
+    return { regex: new RegExp(pattern), error: null };
+  } catch (e) {
+    return { regex: null, error: (e as Error).message };
+  }
+};
+
+export const safeMatch = (text: string, regex: RegExp | null): RegExpMatchArray | null => {
+  if (!regex) {
+    return null;
+  }
+  const capped = text.length > MAX_REGEX_INPUT_LENGTH ? text.slice(0, MAX_REGEX_INPUT_LENGTH) : text;
+  try {
+    return capped.match(regex);
+  } catch {
+    return null;
+  }
+};
+
 export const applyRegexTransform = (
   values: MetricFindValue[],
   regex: RegExp | null
 ): TransformedMetricFindValue[] => {
-  const len = values.length;
-
   if (!regex) {
     return values;
   }
 
+  const len = values.length;
   const result = new Array<TransformedMetricFindValue>(len);
   for (let i = 0; i < len; i++) {
     const item = values[i];
     const text = item.text ?? '';
-    try {
-      const match = text.match(regex);
-      if (match && match[1]) {
-        result[i] = { ...item, text: match[1], value: match[1], __originalText: text };
-      } else {
-        result[i] = item;
-      }
-    } catch {
+    const match = safeMatch(text, regex);
+    if (match && match[1]) {
+      result[i] = { ...item, text: match[1], value: match[1], __originalText: text };
+    } else {
       result[i] = item;
     }
   }
