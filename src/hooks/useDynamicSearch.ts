@@ -6,6 +6,7 @@ import {
   buildQuery,
   applyRegexTransform,
   compileRegex,
+  CompiledRegex,
   deduplicateQueries,
   deduplicateResults,
   isQueryValid,
@@ -63,6 +64,22 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
   useEffect(() => {
     compiledRegexRef.current = compiledRegex;
   }, [compiledRegex]);
+
+  const perQueryRegexes = useMemo(() => {
+    const map = new Map<string, CompiledRegex>();
+    queries.forEach((query) => {
+      map.set(query.id, compileRegex(query.regex));
+    });
+    return map;
+  }, [queries]);
+
+  const queryIndexById = useMemo(() => {
+    const map = new Map<string, number>();
+    queries.forEach((query, index) => {
+      map.set(query.id, index);
+    });
+    return map;
+  }, [queries]);
 
   const loadOptions = useCallback(
     async (inputValue: string): Promise<Array<{ label: string; value: string; description?: string }>> => {
@@ -135,15 +152,15 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
               return Promise.resolve({ results: [], failedName: null });
             }
 
-            const queryName = queryConfig.name || `Query ${queries.indexOf(queryConfig) + 1}`;
+            const queryName = queryConfig.name || `Query ${(queryIndexById.get(queryConfig.id) ?? 0) + 1}`;
             const queryPromise = ds.metricFindQuery!(queryStr, {}).then((results) => {
               let activeRegex: RegExp | null = null;
               if (queryConfig.regex) {
-                  const compiled = compileRegex(queryConfig.regex);
-                  if (compiled.error) {
+                  const compiled = perQueryRegexes.get(queryConfig.id);
+                  if (compiled?.error) {
                       console.warn(`Invalid regex in query "${queryName}": ${compiled.error}`);
                   }
-                  activeRegex = compiled.regex;
+                  activeRegex = compiled?.regex ?? null;
               } else {
                   activeRegex = compiledRegexRef.current.regex;
               }
@@ -238,7 +255,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
         }
       });
     },
-    [resolvedDatasourceUid, queries, minChars, maxResults, searchMode, variableName]
+    [resolvedDatasourceUid, queries, minChars, maxResults, searchMode, variableName, perQueryRegexes, queryIndexById]
   );
 
   const handleChange = useCallback(

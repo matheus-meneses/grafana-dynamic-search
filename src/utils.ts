@@ -33,6 +33,10 @@ export const buildQuery = (options: QueryOptions): string => {
   }
 };
 
+export const queryDedupKey = (query: QueryConfig): string => {
+  return `${query.queryType}|${query.label ?? ''}|${query.metric}|${query.queryTimeout ?? ''}`;
+};
+
 /**
  * Remove duplicate query configurations to avoid redundant API calls.
  * Two queries are considered duplicates if they have the same (queryType, label, metric) tuple.
@@ -42,7 +46,7 @@ export const deduplicateQueries = (queries: QueryConfig[]): QueryConfig[] => {
   const result: QueryConfig[] = [];
 
   for (const query of queries) {
-    const key = `${query.queryType}|${query.label ?? ''}|${query.metric}|${query.queryTimeout ?? ''}`;
+    const key = queryDedupKey(query);
     if (!seen.has(key)) {
       seen.add(key);
       result.push(query);

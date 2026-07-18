@@ -11,7 +11,7 @@ import {
 } from '@grafana/ui';
 import { css } from '@emotion/css';
 import { SimpleOptions, QueryConfig, QUERY_TYPE, QueryType } from '../types';
-import { generateQueryId, buildQuery, compileRegex } from '../utils';
+import { generateQueryId, buildQuery, compileRegex, queryDedupKey } from '../utils';
 
 const queryTypeOptions = [
   { value: QUERY_TYPE.LABEL_VALUES as QueryType, label: 'Label values' },
@@ -113,7 +113,7 @@ const QueriesEditorComponent: React.FC<Props> = ({ value, onChange }) => {
     const seen = new Map<string, number>();
     const dupes = new Set<number>();
     queries.forEach((q, idx) => {
-      const key = `${q.queryType}|${q.label ?? ''}|${q.metric}|${q.queryTimeout ?? ''}`;
+      const key = queryDedupKey(q);
       if (seen.has(key)) {
         dupes.add(seen.get(key)!);
         dupes.add(idx);
