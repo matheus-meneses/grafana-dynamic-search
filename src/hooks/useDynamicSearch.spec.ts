@@ -3,10 +3,28 @@ import { useDynamicSearch } from './useDynamicSearch';
 import { getDataSourceSrv, locationService } from '@grafana/runtime';
 import { SEARCH_MODE, QUERY_TYPE, SimpleOptions } from '../types';
 
+const mockLocationSubscribers = new Set<(location: { search: string }) => void>();
+let mockLocationSearch = '';
+const mockEmitLocation = (search: string) => {
+  mockLocationSearch = search;
+  mockLocationSubscribers.forEach((cb) => cb({ search: mockLocationSearch }));
+};
+
 jest.mock('@grafana/runtime', () => ({
   getDataSourceSrv: jest.fn(),
   locationService: {
     partial: jest.fn(),
+    getLocationObservable: () => ({
+      subscribe: (cb: (location: { search: string }) => void) => {
+        mockLocationSubscribers.add(cb);
+        cb({ search: mockLocationSearch });
+        return {
+          unsubscribe: () => {
+            mockLocationSubscribers.delete(cb);
+          },
+        };
+      },
+    }),
   },
 }));
 
@@ -41,6 +59,8 @@ describe('useDynamicSearch', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockDsInstance.metricFindQuery.mockResolvedValue([]);
+    mockLocationSearch = '';
+    mockLocationSubscribers.clear();
   });
 
   it('should initialize with value from URL/store', () => {
@@ -139,5 +159,64 @@ describe('useDynamicSearch', () => {
 
     expect(result.current.selectedValue).toBeNull();
     expect(locationService.partial).toHaveBeenCalledWith({ 'var-testVar': '' }, true);
+  });
+
+  it('should update selectedValue when the dashboard variable changes externally', () => {
+    const { result } = renderHook(() => useDynamicSearch({
+        options: defaultOptions,
+        resolvedDatasourceUid: 'ds-1'
+    }));
+
+    expect(result.current.selectedValue).toBeNull();
+
+    act(() => {
+        mockEmitLocation('?var-testVar=external');
+    });
+
+    expect(result.current.selectedValue).toEqual({ label: 'external', value: 'external' });
+  });
+
+  it('should clear selectedValue when the variable is emptied externally', () => {
+    const { result } = renderHook(() => useDynamicSearch({
+        options: defaultOptions,
+        resolvedDatasourceUid: 'ds-1'
+    }));
+
+    act(() => {
+        mockEmitLocation('?var-testVar=external');
+    });
+    expect(result.current.selectedValue?.value).toBe('external');
+
+    act(() => {
+        mockEmitLocation('?var-testVar=');
+    });
+    expect(result.current.selectedValue).toBeNull();
+  });
+
+  it('should ignore location changes without the variable param', () => {
+    const { result } = renderHook(() => useDynamicSearch({
+        options: defaultOptions,
+        resolvedDatasourceUid: 'ds-1'
+    }));
+
+    act(() => {
+        mockEmitLocation('?var-other=x&from=now-6h');
+    });
+
+    expect(result.current.selectedValue).toBeNull();
+  });
+
+  it('should not write back to the URL when applying an external change', () => {
+    const { result } = renderHook(() => useDynamicSearch({
+        options: defaultOptions,
+        resolvedDatasourceUid: 'ds-1'
+    }));
+
+    act(() => {
+        mockEmitLocation('?var-testVar=external');
+    });
+
+    expect(result.current.selectedValue?.value).toBe('external');
+    expect(locationService.partial).not.toHaveBeenCalled();
   });
 });

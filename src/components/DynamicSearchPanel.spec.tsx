@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { DynamicSearchPanel } from './DynamicSearchPanel';
 import { PanelProps, LoadingState } from '@grafana/data';
 import { SimpleOptions, SEARCH_MODE } from '../types';
@@ -18,6 +18,11 @@ afterAll(() => {
   console.error = originalError;
 });
 
+afterEach(() => {
+  mockLocationSearch = '';
+  mockLocationSubscribers.clear();
+});
+
 const mockGetDataSourceSrv = jest.fn();
 const mockLocationService = {
   partial: jest.fn(),
@@ -25,12 +30,30 @@ const mockLocationService = {
 const mockGetVariables = jest.fn();
 const mockReplace = jest.fn();
 
+const mockLocationSubscribers = new Set<(location: { search: string }) => void>();
+let mockLocationSearch = '';
+const mockEmitLocation = (search: string) => {
+  mockLocationSearch = search;
+  mockLocationSubscribers.forEach((cb) => cb({ search: mockLocationSearch }));
+};
+
 jest.mock('@grafana/runtime', () => ({
   getDataSourceSrv: () => ({
     get: mockGetDataSourceSrv,
   }),
   locationService: {
     partial: (...args: unknown[]) => mockLocationService.partial(...args),
+    getLocationObservable: () => ({
+      subscribe: (cb: (location: { search: string }) => void) => {
+        mockLocationSubscribers.add(cb);
+        cb({ search: mockLocationSearch });
+        return {
+          unsubscribe: () => {
+            mockLocationSubscribers.delete(cb);
+          },
+        };
+      },
+    }),
   },
   getTemplateSrv: () => ({
     getVariables: () => mockGetVariables(),
@@ -1007,5 +1030,86 @@ describe('DynamicSearchPanel - Datasource Variable Support', () => {
         expect(screen.getByTestId('dynamic-search-panel-variable-warning')).toHaveTextContent(
             'Datasource variable "$unresolved" could not be resolved'
         );
+    });
+});
+
+describe('DynamicSearchPanel - External Variable Sync', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockGetVariables.mockReturnValue([{ name: 'testVar', type: 'query' }]);
+        mockReplace.mockImplementation((input: string) => input);
+    });
+
+    it('reflects an external change to the dashboard variable', async () => {
+        render(<DynamicSearchPanel {...defaultProps} />);
+
+        expect(screen.queryByTestId('dynamic-search-panel-selected-badge')).not.toBeInTheDocument();
+
+        act(() => {
+            mockEmitLocation('?var-testVar=external-value');
+        });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toHaveTextContent('external-value');
+        });
+    });
+
+    it('clears the selection when the variable is cleared externally', async () => {
+        render(<DynamicSearchPanel {...defaultProps} />);
+
+        act(() => {
+            mockEmitLocation('?var-testVar=first');
+        });
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toHaveTextContent('first');
+        });
+
+        act(() => {
+            mockEmitLocation('?var-testVar=');
+        });
+        await waitFor(() => {
+            expect(screen.queryByTestId('dynamic-search-panel-selected-badge')).not.toBeInTheDocument();
+        });
+    });
+
+    it('ignores location changes that do not include the variable param', async () => {
+        render(<DynamicSearchPanel {...defaultProps} />);
+
+        act(() => {
+            mockEmitLocation('?var-otherVar=something&from=now-1h');
+        });
+
+        expect(screen.queryByTestId('dynamic-search-panel-selected-badge')).not.toBeInTheDocument();
+    });
+
+    it('does not re-apply the value it just wrote via selection', async () => {
+        const mockMetricFindQuery = jest.fn().mockResolvedValue([
+            { text: 'node-01', value: 'node-01' },
+        ]);
+        mockGetDataSourceSrv.mockReturnValue({
+            metricFindQuery: mockMetricFindQuery,
+        });
+
+        render(<DynamicSearchPanel {...defaultProps} />);
+        const input = screen.getByTestId('combobox-input');
+        fireEvent.change(input, { target: { value: 'node' } });
+
+        await waitFor(() => {
+            expect(screen.getByTestId('option-node-01')).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByTestId('option-node-01'));
+
+        await waitFor(() => {
+            expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toHaveTextContent('node-01');
+        });
+
+        mockLocationService.partial.mockClear();
+        act(() => {
+            mockEmitLocation('?var-testVar=node-01');
+        });
+
+        expect(mockLocationService.partial).not.toHaveBeenCalled();
+        expect(screen.getByTestId('dynamic-search-panel-selected-badge')).toHaveTextContent('node-01');
     });
 });
