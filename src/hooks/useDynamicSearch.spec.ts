@@ -140,4 +140,92 @@ describe('useDynamicSearch', () => {
     expect(result.current.selectedValue).toBeNull();
     expect(locationService.partial).toHaveBeenCalledWith({ 'var-testVar': '' }, true);
   });
+
+  describe('result caching', () => {
+    const cachedOptions: SimpleOptions = { ...defaultOptions, cacheTtl: 60 };
+
+    it('should not call the datasource again for a cache hit within the TTL', async () => {
+      mockDsInstance.metricFindQuery.mockResolvedValue([{ text: 'abc-result', value: 'v1' }]);
+      const { result } = renderHook(() => useDynamicSearch({ options: cachedOptions, resolvedDatasourceUid: 'ds-1' }));
+
+      let first: Array<{ label: string; value: string }> = [];
+      await act(async () => {
+        first = await result.current.loadOptions('abc');
+      });
+      expect(mockDsInstance.metricFindQuery).toHaveBeenCalledTimes(1);
+
+      let second: Array<{ label: string; value: string }> = [];
+      await act(async () => {
+        second = await result.current.loadOptions('abc');
+      });
+
+      expect(mockDsInstance.metricFindQuery).toHaveBeenCalledTimes(1);
+      expect(second).toEqual(first);
+    });
+
+    it('should call the datasource for each distinct input', async () => {
+      mockDsInstance.metricFindQuery.mockResolvedValue([{ text: 'abc-result', value: 'v1' }]);
+      const { result } = renderHook(() => useDynamicSearch({ options: cachedOptions, resolvedDatasourceUid: 'ds-1' }));
+
+      await act(async () => {
+        await result.current.loadOptions('abc');
+      });
+      await act(async () => {
+        await result.current.loadOptions('abcd');
+      });
+
+      expect(mockDsInstance.metricFindQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not cache when caching is disabled', async () => {
+      mockDsInstance.metricFindQuery.mockResolvedValue([{ text: 'abc-result', value: 'v1' }]);
+      const { result } = renderHook(() => useDynamicSearch({ options: defaultOptions, resolvedDatasourceUid: 'ds-1' }));
+
+      await act(async () => {
+        await result.current.loadOptions('abc');
+      });
+      await act(async () => {
+        await result.current.loadOptions('abc');
+      });
+
+      expect(mockDsInstance.metricFindQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not cache results when a query fails', async () => {
+      mockDsInstance.metricFindQuery.mockRejectedValue(new Error('API Error'));
+      const { result } = renderHook(() => useDynamicSearch({ options: cachedOptions, resolvedDatasourceUid: 'ds-1' }));
+
+      await act(async () => {
+        await result.current.loadOptions('abc');
+      });
+      await act(async () => {
+        await result.current.loadOptions('abc');
+      });
+
+      expect(mockDsInstance.metricFindQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('should re-query once the cached entry expires', async () => {
+      mockDsInstance.metricFindQuery.mockResolvedValue([{ text: 'abc-result', value: 'v1' }]);
+      const shortTtl: SimpleOptions = { ...defaultOptions, cacheTtl: 1 };
+      const nowSpy = jest.spyOn(Date, 'now');
+      nowSpy.mockReturnValue(1_000_000);
+
+      const { result } = renderHook(() => useDynamicSearch({ options: shortTtl, resolvedDatasourceUid: 'ds-1' }));
+
+      await act(async () => {
+        await result.current.loadOptions('abc');
+      });
+      expect(mockDsInstance.metricFindQuery).toHaveBeenCalledTimes(1);
+
+      nowSpy.mockReturnValue(1_000_000 + 2_000);
+
+      await act(async () => {
+        await result.current.loadOptions('abc');
+      });
+      expect(mockDsInstance.metricFindQuery).toHaveBeenCalledTimes(2);
+
+      nowSpy.mockRestore();
+    });
+  });
 });

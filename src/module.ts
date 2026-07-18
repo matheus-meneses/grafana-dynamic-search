@@ -107,6 +107,17 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel)
         },
         category: ['Display'],
       })
+      .addNumberInput({
+        path: 'cacheTtl',
+        name: 'Cache TTL (s)',
+        description: 'Cache query results per search input for this many seconds (0 disables caching)',
+        defaultValue: 0,
+        settings: {
+          min: 0,
+          integer: true,
+        },
+        category: ['Display'],
+      })
       .addSelect({
         path: 'searchMode',
         name: 'Search Mode',

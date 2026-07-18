@@ -11,6 +11,7 @@ import {
   deduplicateResults,
   isQueryValid,
   getInitialVariableValue,
+  queryDedupKey,
   MIN_SEARCH_LENGTH,
   DEBOUNCE_DELAY,
 } from '../utils';
@@ -20,12 +21,22 @@ interface UseDynamicSearchArgs {
   resolvedDatasourceUid: string | undefined;
 }
 
+type LoadOptionsResult = Array<{ label: string; value: string; description?: string }>;
+
+interface CacheEntry {
+  expires: number;
+  value: LoadOptionsResult;
+}
+
+const MAX_CACHE_ENTRIES = 100;
+
 export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicSearchArgs) => {
   const { variableName, regex } = options;
   const queries: QueryConfig[] = useMemo(() => options.queries ?? [], [options.queries]);
   const minChars = options.minChars ?? MIN_SEARCH_LENGTH;
   const maxResults = options.maxResults ?? 0;
   const searchMode = options.searchMode ?? SEARCH_MODE.CONTAINS;
+  const cacheTtl = options.cacheTtl ?? 0;
 
   const [selectedValue, setSelectedValue] = useState<SelectableValue<string> | null>(() =>
     getInitialVariableValue(variableName)
@@ -81,6 +92,17 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
     return map;
   }, [queries]);
 
+  const queriesSignature = useMemo(
+    () => queries.map((q) => `${queryDedupKey(q)}~${q.regex ?? ''}`).join('||'),
+    [queries]
+  );
+
+  const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
+
+  useEffect(() => {
+    cacheRef.current.clear();
+  }, [resolvedDatasourceUid, queriesSignature, searchMode, maxResults, regex]);
+
   const loadOptions = useCallback(
     async (inputValue: string): Promise<Array<{ label: string; value: string; description?: string }>> => {
       if (debounceTimeoutRef.current) {
@@ -123,6 +145,17 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
       }).then(async (shouldProceed) => {
         if (!shouldProceed || currentRequestId !== requestIdRef.current) {
           return [];
+        }
+
+        if (cacheTtl > 0) {
+          const cached = cacheRef.current.get(inputValue);
+          if (cached && cached.expires > Date.now()) {
+            setFailedQueries([]);
+            setHasSearched(true);
+            setLastResultCount(cached.value.length);
+            setIsLoading(false);
+            return cached.value;
+          }
         }
 
         setIsLoading(true);
@@ -198,6 +231,19 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
           const failedNames = allSettled.map(r => r.failedName).filter((name): name is string => name !== null);
           setFailedQueries(failedNames);
 
+          const cacheResult = (value: LoadOptionsResult) => {
+            if (cacheTtl > 0 && failedNames.length === 0) {
+              if (cacheRef.current.size >= MAX_CACHE_ENTRIES) {
+                const oldestKey = cacheRef.current.keys().next().value;
+                if (oldestKey !== undefined) {
+                  cacheRef.current.delete(oldestKey);
+                }
+              }
+              cacheRef.current.set(inputValue, { expires: Date.now() + cacheTtl * 1000, value });
+            }
+            return value;
+          };
+
           const mergedResults = deduplicateResults(allSettled.flatMap(r => r.results));
 
           let filteredResults = mergedResults;
@@ -222,7 +268,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
 
           if (filteredResults.length === 0) {
             setLastResultCount(0);
-            return [];
+            return cacheResult([]);
           }
 
           let transformed = filteredResults;
@@ -233,7 +279,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
 
           setLastResultCount(transformed.length);
 
-          return transformed
+          const mapped = transformed
             .map((r) => {
               const val = r.value !== undefined ? String(r.value) : r.text;
               return {
@@ -243,6 +289,8 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
               };
             })
             .filter((r) => typeof r.value === 'string' && r.value !== '');
+
+          return cacheResult(mapped);
         } catch (err) {
           if (currentRequestId !== requestIdRef.current) {
             return [];
@@ -255,7 +303,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
         }
       });
     },
-    [resolvedDatasourceUid, queries, minChars, maxResults, searchMode, variableName, perQueryRegexes, queryIndexById]
+    [resolvedDatasourceUid, queries, minChars, maxResults, searchMode, variableName, perQueryRegexes, queryIndexById, cacheTtl]
   );
 
   const handleChange = useCallback(
