@@ -1,4 +1,4 @@
-import { buildQuery, applyRegexTransform, compileRegex, safeMatch, MAX_REGEX_PATTERN_LENGTH, MAX_REGEX_INPUT_LENGTH, deduplicateQueries, deduplicateResults, generateQueryId, isQueryValid, getInitialVariableValue, resolveDatasourceUid } from './utils';
+import { buildQuery, applyRegexTransform, compileRegex, safeMatch, MAX_REGEX_PATTERN_LENGTH, MAX_REGEX_INPUT_LENGTH, deduplicateQueries, deduplicateResults, generateQueryId, isQueryValid, queryDedupKey, getInitialVariableValue, resolveDatasourceUid } from './utils';
 import { QueryOptions, QueryType, QueryConfig, QUERY_TYPE } from './types';
 import { MetricFindValue } from '@grafana/data';
 
@@ -228,6 +228,34 @@ describe('utils', () => {
       const elapsed = performance.now() - start;
       expect(result).toBeNull();
       expect(elapsed).toBeLessThan(100);
+    });
+  });
+
+  describe('queryDedupKey', () => {
+    it('should return the same key for configs with identical dedup fields', () => {
+      const a: QueryConfig = { id: '1', queryType: 'label_values', label: 'job', metric: 'up' };
+      const b: QueryConfig = { id: '2', queryType: 'label_values', label: 'job', metric: 'up' };
+      expect(queryDedupKey(a)).toBe(queryDedupKey(b));
+    });
+
+    it('should treat undefined and empty label as equal', () => {
+      const a: QueryConfig = { id: '1', queryType: 'label_names', metric: 'up' };
+      const b: QueryConfig = { id: '2', queryType: 'label_names', label: '', metric: 'up' };
+      expect(queryDedupKey(a)).toBe(queryDedupKey(b));
+    });
+
+    it('should differ when any dedup field differs', () => {
+      const base: QueryConfig = { id: '1', queryType: 'label_values', label: 'job', metric: 'up', queryTimeout: 5 };
+      expect(queryDedupKey(base)).not.toBe(queryDedupKey({ ...base, queryType: 'label_names' }));
+      expect(queryDedupKey(base)).not.toBe(queryDedupKey({ ...base, label: 'instance' }));
+      expect(queryDedupKey(base)).not.toBe(queryDedupKey({ ...base, metric: 'down' }));
+      expect(queryDedupKey(base)).not.toBe(queryDedupKey({ ...base, queryTimeout: 10 }));
+    });
+
+    it('should ignore fields not used for deduplication', () => {
+      const a: QueryConfig = { id: '1', queryType: 'metrics', metric: 'up', name: 'First', regex: 'a' };
+      const b: QueryConfig = { id: '2', queryType: 'metrics', metric: 'up', name: 'Second', regex: 'b' };
+      expect(queryDedupKey(a)).toBe(queryDedupKey(b));
     });
   });
 
