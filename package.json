@@ -27,7 +27,7 @@
     "@playwright/test": "^1.61.1",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@stylistic/eslint-plugin-ts": "^4.4.1",
-    "@swc/core": "^1.15.30",
+    "@swc/core": "^1.15.46",
     "@swc/helpers": "^0.5.19",
     "@swc/jest": "^0.2.26",
     "@testing-library/dom": "^10.0.0",
