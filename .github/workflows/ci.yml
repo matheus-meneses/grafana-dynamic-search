@@ -205,7 +205,7 @@ jobs:
         run: npm run e2e
 
       - name: Upload e2e test summary
-        uses: grafana/plugin-actions/playwright-gh-pages/upload-report-artifacts@fa3356df288e68f5e900ab466e98b0bf9bad3118 # upload-report-artifacts/v1.0.1
+        uses: grafana/plugin-actions/playwright-gh-pages/upload-report-artifacts@5126c72164f61e5957c6266ab40571a066af6dfa # upload-report-artifacts/v1.0.2
         if: ${{ always() && !cancelled() }}
         with:
           upload-report: false
