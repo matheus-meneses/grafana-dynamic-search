@@ -44,6 +44,8 @@ export interface SimpleOptions {
     maxResults?: number;
     placeholder?: string;
     searchMode?: SearchMode;
+    /** Seconds to cache query results per input; 0 disables caching */
+    cacheTtl?: number;
     /** @deprecated Use queries[].queryTimeout instead. Kept for migration. */
     queryTimeout?: number;
 }
