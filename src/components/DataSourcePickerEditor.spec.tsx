@@ -52,8 +52,9 @@ describe('DataSourcePickerEditor', () => {
       { type: 'query', name: 'other', query: '' },
     ]);
     mockGetList.mockReturnValue([
-      { uid: 'prometheus-uid', name: 'Prometheus', isDefault: true },
-      { uid: 'prometheus-2', name: 'Prometheus 2', isDefault: false },
+      { uid: 'prometheus-uid', name: 'Prometheus', isDefault: true, type: 'prometheus' },
+      { uid: 'prometheus-2', name: 'Prometheus 2', isDefault: false, type: 'prometheus' },
+      { uid: 'influx-1', name: 'InfluxDB', isDefault: false, type: 'influxdb' },
     ]);
   });
 
@@ -69,16 +70,18 @@ describe('DataSourcePickerEditor', () => {
     expect(mockOnChange).toHaveBeenCalledWith('prometheus-2');
   });
 
-  it('shows only prometheus-type variables', () => {
+  it('shows all datasource-type variables regardless of datasource type', () => {
     render(<DataSourcePickerEditor {...defaultProps} />);
     expect(screen.getByText('$datasource')).toBeInTheDocument();
-    expect(screen.queryByText('$testdb')).not.toBeInTheDocument();
+    expect(screen.getByText('$testdb')).toBeInTheDocument();
+    expect(screen.queryByText('$other')).not.toBeInTheDocument();
   });
 
-  it('shows prometheus datasources', () => {
+  it('shows datasources of any type', () => {
     render(<DataSourcePickerEditor {...defaultProps} />);
     expect(screen.getAllByText('Prometheus').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Prometheus 2')).toBeInTheDocument();
+    expect(screen.getByText('InfluxDB')).toBeInTheDocument();
   });
 
   it('renders with empty value', () => {

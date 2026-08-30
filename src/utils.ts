@@ -13,7 +13,7 @@ export const generateQueryId = (): string => {
 };
 
 export const buildQuery = (options: QueryOptions): string => {
-  const { queryType, label, metric } = options;
+  const { queryType, label, metric, rawQuery } = options;
 
   switch (queryType) {
     case QUERY_TYPE.LABEL_VALUES:
@@ -28,13 +28,15 @@ export const buildQuery = (options: QueryOptions): string => {
       return metric ? `label_names(${metric})` : 'label_names()';
     case QUERY_TYPE.METRICS:
       return metric ? `metrics(${metric})` : 'metrics(.*)';
+    case QUERY_TYPE.RAW:
+      return rawQuery?.trim() ? rawQuery : '';
     default:
       return '';
   }
 };
 
 export const queryDedupKey = (query: QueryConfig): string => {
-  return `${query.queryType}|${query.label ?? ''}|${query.metric}|${query.queryTimeout ?? ''}`;
+  return `${query.queryType}|${query.label ?? ''}|${query.metric}|${query.rawQuery ?? ''}|${query.queryTimeout ?? ''}`;
 };
 
 /**
@@ -132,7 +134,7 @@ export const applyRegexTransform = (
 };
 
 export const isQueryValid = (q: QueryConfig): boolean => {
-  return buildQuery({ queryType: q.queryType, label: q.label, metric: q.metric }) !== '';
+  return buildQuery({ queryType: q.queryType, label: q.label, metric: q.metric, rawQuery: q.rawQuery }) !== '';
 };
 
 export const getInitialVariableValue = (variableName: string | undefined): SelectableValue<string> | null => {

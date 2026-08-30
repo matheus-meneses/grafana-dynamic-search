@@ -89,6 +89,35 @@ describe('utils', () => {
         };
         expect(buildQuery(options)).toBe('');
     });
+
+    it('should return the raw query verbatim for raw type', () => {
+      const options: QueryOptions = {
+        ...defaultOptions,
+        queryType: 'raw',
+        metric: '',
+        rawQuery: 'SHOW TAG VALUES FROM "cpu" WITH KEY = "host"',
+      };
+      expect(buildQuery(options)).toBe('SHOW TAG VALUES FROM "cpu" WITH KEY = "host"');
+    });
+
+    it('should return empty string for raw type with blank query', () => {
+      const options: QueryOptions = {
+        ...defaultOptions,
+        queryType: 'raw',
+        metric: '',
+        rawQuery: '   ',
+      };
+      expect(buildQuery(options)).toBe('');
+    });
+
+    it('should return empty string for raw type with no query', () => {
+      const options: QueryOptions = {
+        ...defaultOptions,
+        queryType: 'raw',
+        metric: '',
+      };
+      expect(buildQuery(options)).toBe('');
+    });
   });
 
   describe('applyRegexTransform', () => {
@@ -250,6 +279,7 @@ describe('utils', () => {
       expect(queryDedupKey(base)).not.toBe(queryDedupKey({ ...base, label: 'instance' }));
       expect(queryDedupKey(base)).not.toBe(queryDedupKey({ ...base, metric: 'down' }));
       expect(queryDedupKey(base)).not.toBe(queryDedupKey({ ...base, queryTimeout: 10 }));
+      expect(queryDedupKey(base)).not.toBe(queryDedupKey({ ...base, rawQuery: 'up' }));
     });
 
     it('should ignore fields not used for deduplication', () => {
@@ -400,6 +430,14 @@ describe('utils', () => {
 
     it('should return false for label_values without label', () => {
       expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.LABEL_VALUES, metric: 'up', label: '', name: '' })).toBe(false);
+    });
+
+    it('should return true for raw query with a non-empty rawQuery', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.RAW, metric: '', rawQuery: 'label_values(up, job)', name: '' })).toBe(true);
+    });
+
+    it('should return false for raw query with a blank rawQuery', () => {
+      expect(isQueryValid({ id: '1', queryType: QUERY_TYPE.RAW, metric: '', rawQuery: '  ', name: '' })).toBe(false);
     });
 
     it('should return false for an unknown query type', () => {

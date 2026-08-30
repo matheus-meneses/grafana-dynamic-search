@@ -31,6 +31,17 @@ jest.mock('@grafana/ui', () => ({
       type={type}
     />
   ),
+  TextArea: ({ value, onChange, placeholder }: {
+    value: string;
+    onChange: (e: { currentTarget: { value: string } }) => void;
+    placeholder?: string;
+  }) => (
+    <textarea
+      value={value}
+      onChange={(e) => onChange({ currentTarget: { value: e.target.value } })}
+      placeholder={placeholder}
+    />
+  ),
   useStyles2: () => ({
     container: '',
     queryCard: '',
@@ -179,5 +190,28 @@ describe('QueriesEditor', () => {
     const queries = [makeQuery({ metric: 'up', label: 'job', queryType: QUERY_TYPE.LABEL_VALUES })];
     render(<QueriesEditor {...defaultProps} value={queries} />);
     expect(screen.getByText('label_values(up, job)')).toBeInTheDocument();
+  });
+
+  it('should show a raw query textarea instead of metric for raw type', () => {
+    const queries = [makeQuery({ queryType: QUERY_TYPE.RAW, metric: '', label: '', rawQuery: 'label_values(up, job)' })];
+    render(<QueriesEditor {...defaultProps} value={queries} />);
+    expect(screen.getByPlaceholderText('Datasource-specific query, e.g., label_values(up, job)')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('e.g., up, http_requests_total')).not.toBeInTheDocument();
+  });
+
+  it('should update rawQuery when the raw textarea changes', () => {
+    const queries = [makeQuery({ queryType: QUERY_TYPE.RAW, metric: '', label: '', rawQuery: '' })];
+    render(<QueriesEditor {...defaultProps} value={queries} />);
+    const textarea = screen.getByPlaceholderText('Datasource-specific query, e.g., label_values(up, job)');
+    fireEvent.change(textarea, { target: { value: 'metrics(.*)' } });
+    expect(defaultProps.onChange).toHaveBeenCalledTimes(1);
+    expect(defaultProps.onChange.mock.calls[0][0][0].rawQuery).toBe('metrics(.*)');
+  });
+
+  it('should render the raw query verbatim in the preview', () => {
+    const queries = [makeQuery({ queryType: QUERY_TYPE.RAW, metric: '', label: '', rawQuery: 'SHOW TAG VALUES' })];
+    render(<QueriesEditor {...defaultProps} value={queries} />);
+    const matches = screen.getAllByText('SHOW TAG VALUES');
+    expect(matches.some((el) => el.tagName === 'DIV')).toBe(true);
   });
 });

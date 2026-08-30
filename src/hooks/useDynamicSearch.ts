@@ -147,7 +147,7 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
           }
 
           const queryPromises = uniqueQueries.map((queryConfig) => {
-            const queryStr = buildQuery({ queryType: queryConfig.queryType, label: queryConfig.label, metric: queryConfig.metric });
+            const queryStr = buildQuery({ queryType: queryConfig.queryType, label: queryConfig.label, metric: queryConfig.metric, rawQuery: queryConfig.rawQuery });
             if (!queryStr) {
               return Promise.resolve({ results: [], failedName: null });
             }

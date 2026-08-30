@@ -55,7 +55,7 @@ export const plugin = new PanelPlugin<SimpleOptions>(DynamicSearchPanel)
         id: 'datasourceUid',
         path: 'datasourceUid',
         name: 'Datasource *',
-        description: 'Select the Prometheus datasource to query',
+        description: 'Select the datasource to query (Prometheus-style types support the built-in query builder; use Raw for any datasource)',
         editor: DataSourcePickerEditor,
         category: ['Data Source'],
       })

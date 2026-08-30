@@ -240,7 +240,7 @@ describe('DynamicSearchPanel', () => {
     it('flags queries that cannot build a query as invalid configuration', async () => {
         render(<DynamicSearchPanel {...defaultProps} options={{ ...defaultOptions, queries: [{ id: 'q-1', queryType: 'invalid' as any, metric: 'up' }] }} />);
 
-        expect(await screen.findByText('At least one valid query (check metric and label fields)')).toBeInTheDocument();
+        expect(await screen.findByText('At least one valid query (check metric, label, or raw query fields)')).toBeInTheDocument();
         expect(screen.queryByTestId('combobox-input')).not.toBeInTheDocument();
     });
 
