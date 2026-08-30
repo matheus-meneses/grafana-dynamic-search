@@ -46,6 +46,27 @@ export const useDynamicSearch = ({ options, resolvedDatasourceUid }: UseDynamicS
   }, [selectedValue]);
 
   useEffect(() => {
+    if (!variableName) {
+      return;
+    }
+    const key = `var-${variableName}`;
+    const subscription = locationService.getLocationObservable().subscribe((location) => {
+      const params = new URLSearchParams(location.search);
+      if (!params.has(key)) {
+        return;
+      }
+      const urlValue = params.get(key) ?? '';
+      const currentValue = selectedValueRef.current?.value ?? '';
+      if (urlValue === currentValue) {
+        return;
+      }
+      lastInputValueRef.current = '';
+      setSelectedValue(urlValue === '' ? null : { label: urlValue, value: urlValue });
+    });
+    return () => subscription.unsubscribe();
+  }, [variableName]);
+
+  useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
